@@ -5,55 +5,76 @@ import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useRef } from "react";
 
-/* ─── Shared Navbar ─── */
+/* ══════════════════════════════════════════════
+   SHARED NAVBAR
+══════════════════════════════════════════════ */
 export function SiteNavbar() {
   const path = usePathname();
-  const isApp = path?.startsWith("/app");
-  if (isApp) return null;
+  if (path?.startsWith("/app")) return null;
 
-  const linkStyle = (active: boolean) => ({
+  const lk = (active: boolean): React.CSSProperties => ({
     color: active ? "var(--text)" : "var(--muted)",
     textDecoration: "none",
     fontSize: "14px",
     fontWeight: 500,
-    transition: "color 0.2s",
-    padding: "4px 0",
-    borderBottom: active ? "1px solid var(--border-2)" : "1px solid transparent",
-  } as React.CSSProperties);
+    transition: "color 0.18s",
+    letterSpacing: "0.01em",
+  });
 
   return (
     <nav className="site-nav" style={{
       display: "flex", justifyContent: "space-between", alignItems: "center",
-      padding: "0 48px", height: "62px",
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+      padding: "0 48px", height: "60px",
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
       borderBottom: "1px solid var(--border)",
     }}>
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-          <rect x="1" y="1" width="20" height="20" rx="5" stroke="var(--accent)" strokeWidth="1.5"/>
-          <circle cx="11" cy="11" r="3" fill="var(--accent)" opacity="0.8"/>
-          <line x1="11" y1="4" x2="11" y2="8" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
-          <line x1="11" y1="14" x2="11" y2="18" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
-          <line x1="4" y1="11" x2="8" y2="11" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
-          <line x1="14" y1="11" x2="18" y2="11" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Logo */}
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: "9px", textDecoration: "none" }}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="0.75" y="0.75" width="18.5" height="18.5" rx="4.5" stroke="var(--accent)" strokeWidth="1.5"/>
+          <circle cx="10" cy="10" r="2.5" fill="var(--accent)"/>
+          <line x1="10" y1="3.5" x2="10" y2="7" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="10" y1="13" x2="10" y2="16.5" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="3.5" y1="10" x2="7" y2="10" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="13" y1="10" x2="16.5" y2="10" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        <span style={{ fontWeight: 700, fontSize: "16px", color: "var(--text)", letterSpacing: "-0.02em" }}>audiomap</span>
+        <span style={{ fontWeight: 700, fontSize: "15px", color: "var(--text)", letterSpacing: "-0.025em" }}>audiomap</span>
       </Link>
 
+      {/* Links */}
       <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
-        <Link href="/pricing" style={linkStyle(path === "/pricing")}>Pricing</Link>
-        <Link href="/about" style={linkStyle(path === "/about")}>Architecture</Link>
-        <Link href="/dashboard" style={linkStyle(path === "/dashboard")}>Dashboard</Link>
-        <a href="https://github.com/mohasbks/Audiomap" target="_blank" rel="noopener noreferrer" style={linkStyle(false)}>GitHub</a>
+        {[
+          { href: "/pricing",   label: "Pricing"       },
+          { href: "/about",     label: "Architecture"  },
+          { href: "/dashboard", label: "Dashboard"     },
+          { href: "https://github.com/mohasbks/Audiomap", label: "GitHub", ext: true },
+        ].map(({ href, label, ext }) => (
+          <a
+            key={href}
+            href={href}
+            target={ext ? "_blank" : undefined}
+            rel={ext ? "noopener noreferrer" : undefined}
+            style={lk(!ext && path === href)}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--text)")}
+            onMouseLeave={e => (e.currentTarget.style.color = (!ext && path === href) ? "var(--text)" : "var(--muted)")}
+          >
+            {label}
+          </a>
+        ))}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+
+      {/* Actions */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <ThemeToggle />
         <Link href="/app" style={{
-          background: "var(--accent)", color: "#fff", padding: "8px 20px", borderRadius: "8px",
-          fontSize: "14px", fontWeight: 600, textDecoration: "none", transition: "opacity 0.2s, transform 0.15s",
+          background: "var(--text)", color: "var(--bg)",
+          padding: "7px 18px", borderRadius: "7px",
+          fontSize: "13px", fontWeight: 600, textDecoration: "none",
+          transition: "opacity 0.18s",
+          letterSpacing: "0.01em",
         }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-          onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}>
+          onMouseEnter={e => (e.currentTarget.style.opacity = "0.82")}
+          onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
           Open App
         </Link>
       </div>
@@ -61,94 +82,63 @@ export function SiteNavbar() {
   );
 }
 
-/* ─── Shared Footer ─── */
+/* ══════════════════════════════════════════════
+   SHARED FOOTER
+══════════════════════════════════════════════ */
 export function SiteFooter() {
-  const colHead: React.CSSProperties = { fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "16px" };
-  const colLink: React.CSSProperties = { color: "var(--muted)", fontSize: "14px", textDecoration: "none", display: "block", marginBottom: "10px", transition: "color 0.2s" };
-  const hov = { enter: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--text)"), leave: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "var(--muted)") };
+  const muted: React.CSSProperties = { color: "var(--muted)", fontSize: "13px", textDecoration: "none", display: "block", marginBottom: "10px", transition: "color 0.18s" };
+  const head: React.CSSProperties = { fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: "18px" };
+  const hov = (e: React.MouseEvent<HTMLAnchorElement>, enter: boolean) => { e.currentTarget.style.color = enter ? "var(--text)" : "var(--muted)"; };
 
   return (
-    <footer style={{ borderTop: "1px solid var(--border)", background: "var(--bg-alt)", paddingTop: "64px", paddingBottom: "40px" }}>
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 40px", display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "48px" }}>
+    <footer style={{ borderTop: "1px solid var(--border)", background: "var(--bg-alt)" }}>
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "64px 48px 48px", display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "48px" }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-            <div style={{ width: "18px", height: "18px", background: "var(--accent)", borderRadius: "4px" }} />
-            <span style={{ fontWeight: 700, color: "var(--text)", fontSize: "15px" }}>audiomap</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <div style={{ width: "16px", height: "16px", background: "var(--accent)", borderRadius: "3px" }} />
+            <span style={{ fontWeight: 700, color: "var(--text)", fontSize: "14px", letterSpacing: "-0.02em" }}>audiomap</span>
           </div>
-          <p style={{ color: "var(--muted)", fontSize: "13px", lineHeight: 1.7, maxWidth: "250px" }}>
-            Voice-to-mindmap intelligence. Powered by Groq, LLaMA 3.3, and Whisper.
+          <p style={{ color: "var(--muted)", fontSize: "13px", lineHeight: 1.75, maxWidth: "220px" }}>
+            Voice-to-mindmap AI. Built on Groq LPU, LLaMA 3.3, and React Flow.
           </p>
         </div>
-        <div>
-          <div style={colHead}>Product</div>
-          <Link href="/app" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>App Workspace</Link>
-          <Link href="/pricing" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>Pricing</Link>
-          <Link href="/dashboard" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>Dashboard</Link>
-        </div>
-        <div>
-          <div style={colHead}>Tech</div>
-          <Link href="/about" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>Architecture</Link>
-          <a href="https://groq.com" target="_blank" rel="noopener" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>Groq API</a>
-          <a href="https://reactflow.dev" target="_blank" rel="noopener" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>React Flow</a>
-        </div>
-        <div>
-          <div style={colHead}>Links</div>
-          <a href="https://github.com/mohasbks/Audiomap" target="_blank" rel="noopener" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>GitHub Repo</a>
-          <a href="https://github.com/mohasbks" target="_blank" rel="noopener" style={colLink} onMouseEnter={hov.enter} onMouseLeave={hov.leave}>@mohasbks</a>
-        </div>
+
+        {[
+          { title: "Product", links: [{ label: "App Workspace", href: "/app" }, { label: "Pricing", href: "/pricing" }, { label: "Dashboard", href: "/dashboard" }] },
+          { title: "Company", links: [{ label: "Architecture", href: "/about" }, { label: "GitHub", href: "https://github.com/mohasbks/Audiomap" }, { label: "Groq API", href: "https://groq.com" }] },
+          { title: "Developer", links: [{ label: "@mohasbks", href: "https://github.com/mohasbks" }, { label: "React Flow", href: "https://reactflow.dev" }, { label: "Next.js", href: "https://nextjs.org" }] },
+        ].map(col => (
+          <div key={col.title}>
+            <div style={head}>{col.title}</div>
+            {col.links.map(l => (
+              <a key={l.label} href={l.href} style={muted} onMouseEnter={e => hov(e, true)} onMouseLeave={e => hov(e, false)}>{l.label}</a>
+            ))}
+          </div>
+        ))}
       </div>
-      <div style={{ maxWidth: "1100px", margin: "48px auto 0", padding: "24px 40px 0", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--muted)" }}>
-        <span>© 2026 Audiomap — Built by Motasem Bellah</span>
-        <span>Next.js 16 · Groq · React Flow</span>
+
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "20px 48px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: "12px", color: "var(--muted)" }}>© 2026 Audiomap. Built by Motasem Bellah.</span>
+        <span style={{ fontSize: "12px", color: "var(--muted)" }}>Next.js · Groq · React Flow</span>
       </div>
     </footer>
   );
 }
 
-/* ─── Feature card ─── */
-function Feature({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
-  return (
-    <div className="card anim-up" style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "16px", transition: "border-color 0.2s, transform 0.2s, box-shadow 0.2s" }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--border-2)"; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.18)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
-      <div style={{ width: "44px", height: "44px", background: "var(--accent-dim)", border: "1px solid var(--border-2)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)" }}>
-        {icon}
-      </div>
-      <div>
-        <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)", marginBottom: "8px" }}>{title}</h3>
-        <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.65 }}>{body}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Stat block ─── */
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div style={{ textAlign: "center", padding: "32px 24px" }}>
-      <div style={{ fontSize: "48px", fontWeight: 700, letterSpacing: "-0.05em", color: "var(--text)", marginBottom: "8px" }}>{value}</div>
-      <div style={{ fontSize: "13px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{label}</div>
-    </div>
-  );
-}
-
-/* ─── Hero Background: Dot Grid + Glow Orbs ─── */
+/* ══════════════════════════════════════════════
+   HERO BACKGROUND
+══════════════════════════════════════════════ */
 function HeroBg() {
   const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth  - 0.5) * 20;
-      const y = (e.clientY / window.innerHeight - 0.5) * 14;
-      el.style.setProperty("--mx", `${x}px`);
-      el.style.setProperty("--my", `${y}px`);
+    const el = ref.current; if (!el) return;
+    const fn = (e: MouseEvent) => {
+      el.style.setProperty("--mx", `${(e.clientX / innerWidth  - 0.5) * 22}px`);
+      el.style.setProperty("--my", `${(e.clientY / innerHeight - 0.5) * 14}px`);
     };
-    window.addEventListener("mousemove", onMove, { passive: true });
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("mousemove", fn, { passive: true });
+    return () => window.removeEventListener("mousemove", fn);
   }, []);
-
   return (
     <div ref={ref} className="hero-bg" aria-hidden>
       <div className="hero-dots" />
@@ -159,162 +149,267 @@ function HeroBg() {
   );
 }
 
-/* ─── Landing Page ─── */
+/* ══════════════════════════════════════════════
+   REUSABLE: FEATURE CARD
+══════════════════════════════════════════════ */
+function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <div
+      className="card"
+      style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "14px", transition: "border-color 0.2s, transform 0.2s" }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--border-2)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)";   e.currentTarget.style.transform = "translateY(0)"; }}
+    >
+      <div style={{ width: "40px", height: "40px", background: "var(--accent-dim)", border: "1px solid rgba(74,123,189,0.2)", borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)" }}>
+        {icon}
+      </div>
+      <div>
+        <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)", marginBottom: "6px", letterSpacing: "-0.01em" }}>{title}</p>
+        <p style={{ fontSize: "13.5px", color: "var(--text-2)", lineHeight: 1.65 }}>{body}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   LANDING PAGE
+══════════════════════════════════════════════ */
 export default function LandingPage() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
       <SiteNavbar />
       <main style={{ flex: 1 }}>
 
-        {/* ══════ HERO ══════ */}
+        {/* ── HERO ── */}
         <section style={{ position: "relative", overflow: "hidden", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "100px 40px 80px" }}>
           <HeroBg />
           <div aria-hidden className="hero-overlay" />
 
-          {/* Hero Content */}
-          <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", maxWidth: "880px" }}>
+          <div style={{ position: "relative", zIndex: 2, textAlign: "center", maxWidth: "820px" }}>
 
-            {/* Badge */}
-            <div className="badge anim-up" style={{ marginBottom: "28px" }}>
-              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent)", boxShadow: "0 0 8px var(--accent)", flexShrink: 0 }} />
-              Live · Groq LPU · 800+ tok/s
+            {/* Status badge */}
+            <div className="badge" style={{ marginBottom: "32px", display: "inline-flex" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e", flexShrink: 0 }} />
+              Live · Groq LPU · &lt;1s generation
             </div>
 
             {/* Headline */}
-            <h1 className="anim-up anim-up-1" style={{ fontSize: "clamp(40px, 7.5vw, 88px)", fontWeight: 700, letterSpacing: "-0.055em", lineHeight: 0.98, marginBottom: "28px" }}>
+            <h1 style={{
+              fontSize: "clamp(42px, 7vw, 84px)",
+              fontWeight: 700,
+              letterSpacing: "-0.055em",
+              lineHeight: 1.0,
+              marginBottom: "24px",
+              color: "var(--text)",
+            }}>
               Turn{" "}
-              <span style={{ background: "linear-gradient(135deg, #6ea8e0 0%, #4a7bbd 50%, #6ea8e0 100%)", backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                voice
-              </span>
-              {" "}into<br />interactive maps
+              <span className="gradient-text">voice</span>
+              {" "}into<br />
+              <span style={{ color: "var(--text-2)", fontWeight: 300 }}>structured maps</span>
             </h1>
 
             {/* Subtitle */}
-            <p className="anim-up anim-up-2" style={{ fontSize: "clamp(16px, 1.8vw, 18px)", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "44px", maxWidth: "440px" }}>
-              Speak or type any idea. AI structures it into a draggable, exportable mind map — in seconds.
+            <p style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "var(--text-2)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto 44px" }}>
+              Speak or type any topic. AI produces an interactive,
+              draggable mind map in under a second.
             </p>
 
-            {/* CTA */}
-            <div className="anim-up anim-up-3" style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center", marginBottom: "56px" }}>
+            {/* CTAs */}
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap", marginBottom: "60px" }}>
               <Link href="/app" style={{
-                background: "var(--accent)", color: "#fff", height: "52px", padding: "0 32px",
-                borderRadius: "10px", fontSize: "15px", fontWeight: 700, textDecoration: "none",
-                display: "flex", alignItems: "center", gap: "9px",
-                boxShadow: "0 4px 24px rgba(74,123,189,0.35)",
-                transition: "transform 0.2s, box-shadow 0.2s",
+                background: "var(--accent)", color: "#fff",
+                height: "48px", padding: "0 28px", borderRadius: "9px",
+                fontSize: "14px", fontWeight: 600, textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                boxShadow: "0 0 0 1px rgba(74,123,189,0.4), 0 4px 20px rgba(74,123,189,0.3)",
+                transition: "transform 0.18s, box-shadow 0.18s",
               }}
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 36px rgba(74,123,189,0.5)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(74,123,189,0.35)"; }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                Start Mapping Free
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 0 0 1px rgba(74,123,189,0.5), 0 8px 28px rgba(74,123,189,0.4)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)";    e.currentTarget.style.boxShadow = "0 0 0 1px rgba(74,123,189,0.4), 0 4px 20px rgba(74,123,189,0.3)"; }}>
+                <IcMic /> Start Mapping Free
               </Link>
-              <Link href="/dashboard" style={{
-                background: "var(--surface)", color: "var(--text-2)", height: "52px", padding: "0 28px",
-                borderRadius: "10px", fontSize: "15px", fontWeight: 500, textDecoration: "none",
-                display: "flex", alignItems: "center", gap: "8px",
-                border: "1px solid var(--border-2)", transition: "all 0.2s",
+              <Link href="/about" style={{
+                background: "var(--surface)", color: "var(--text-2)",
+                height: "48px", padding: "0 24px", borderRadius: "9px",
+                fontSize: "14px", fontWeight: 500, textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: "7px",
+                border: "1px solid var(--border-2)", transition: "color 0.18s, border-color 0.18s",
               }}
                 onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.borderColor = "var(--muted)"; }}
                 onMouseLeave={e => { e.currentTarget.style.color = "var(--text-2)"; e.currentTarget.style.borderColor = "var(--border-2)"; }}>
-                View Dashboard
+                How it&apos;s built <IcArrow />
               </Link>
             </div>
 
-            {/* Scroll hint */}
-            <div className="anim-up anim-up-4" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", color: "var(--muted)", fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            {/* Scroll cue */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", color: "var(--muted)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
               <span>Scroll</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation: "scrollBounce 2s ease infinite" }}><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation: "scrollBounce 2s ease infinite" }}><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
         </section>
 
-        {/* ══════ STATS ══════ */}
-        <section style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "var(--bg-alt)" }}>
-          <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", padding: "0 40px" }}>
+        {/* ── POWERED BY STRIP ── */}
+        <section style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "var(--bg-alt)", padding: "0 48px" }}>
+          <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", alignItems: "center", gap: "48px", padding: "0", overflowX: "auto" }}>
+            <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", padding: "20px 0" }}>
+              Powered by
+            </span>
             {[
-              { value: "800+", label: "Tokens / Sec (Groq)" },
-              { value: "<1s",  label: "Map Generation" },
-              { value: "70B",  label: "LLaMA Parameters" },
-              { value: "∞",    label: "Ideas You Can Map" },
-            ].map((s, i) => (
-              <div key={i} style={{ borderRight: i < 3 ? "1px solid var(--border)" : "none" }}>
-                <Stat value={s.value} label={s.label} />
+              { name: "Groq", sub: "LPU Inference" },
+              { name: "Meta AI", sub: "LLaMA 3.3 70B" },
+              { name: "OpenAI", sub: "Whisper v3" },
+              { name: "Next.js", sub: "App Router" },
+              { name: "React Flow", sub: "Canvas" },
+              { name: "IndexedDB", sub: "Persistence" },
+            ].map((t, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", padding: "20px 0", whiteSpace: "nowrap", borderLeft: i === 0 ? "1px solid var(--border)" : "none", paddingLeft: i === 0 ? "48px" : 0 }}>
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>{t.name}</span>
+                <span style={{ fontSize: "11px", color: "var(--muted)" }}>{t.sub}</span>
               </div>
             ))}
           </div>
         </section>
 
-        {/* ══════ HOW IT WORKS ══════ */}
-        <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "120px 40px 80px" }}>
-          <div style={{ textAlign: "center", marginBottom: "64px" }}>
-            <p style={{ fontSize: "11px", color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, marginBottom: "12px" }}>
-              Simple as 1-2-3
-            </p>
-            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 700, marginBottom: "16px" }}>How it works</h2>
-            <p style={{ fontSize: "16px", color: "var(--text-2)", maxWidth: "380px", margin: "0 auto", lineHeight: 1.65 }}>
-              From scattered thoughts to structured map in three steps.
+        {/* ── HOW IT WORKS ── */}
+        <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "120px 48px 80px" }}>
+          <div style={{ marginBottom: "64px" }}>
+            <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "12px" }}>Process</p>
+            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 42px)", fontWeight: 700, letterSpacing: "-0.04em", marginBottom: "14px" }}>
+              Three steps, one mind map.
+            </h2>
+            <p style={{ fontSize: "15px", color: "var(--text-2)", maxWidth: "400px", lineHeight: 1.7 }}>
+              From scattered thoughts to a fully structured, interactive diagram.
             </p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "2px", background: "var(--border)", borderRadius: "16px", overflow: "hidden", border: "1px solid var(--border)" }}>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1px", background: "var(--border)", border: "1px solid var(--border)", borderRadius: "14px", overflow: "hidden" }}>
             {[
-              { step: "01", icon: "🎙", title: "Speak or Type", body: "Record your voice or type your idea in any language. Whisper STT handles the transcription instantly." },
-              { step: "02", icon: "⚡", title: "AI Processes", body: "LLaMA 3.3 70B running on Groq LPU analyzes your input and builds a structured concept hierarchy." },
-              { step: "03", icon: "🗺", title: "Explore & Export", body: "Drag nodes, zoom in, add connections, then export as PNG, SVG, JSON, or Markdown." },
-            ].map((s, i) => (
-              <div key={i} style={{ padding: "48px 40px", background: "var(--surface)", display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ fontSize: "36px" }}>{s.icon}</span>
-                  <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.06em" }}>{s.step}</span>
+              {
+                n: "01",
+                title: "Speak or Type",
+                body: "Record your voice in any language or type your idea. Whisper v3 handles transcription with near-human accuracy.",
+                icon: <IcMic />,
+              },
+              {
+                n: "02",
+                title: "AI Structures It",
+                body: "LLaMA 3.3 70B running on Groq LPU analyzes your input and builds a structured concept hierarchy in under a second.",
+                icon: <IcZap />,
+              },
+              {
+                n: "03",
+                title: "Explore & Export",
+                body: "Drag nodes, zoom in, add connections. Export as PNG, SVG, JSON, or Markdown for Notion and GitHub.",
+                icon: <IcFlow />,
+              },
+            ].map((step) => (
+              <div key={step.n} style={{ background: "var(--surface)", padding: "44px 40px", display: "flex", flexDirection: "column", gap: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "var(--accent-dim)", border: "1px solid rgba(74,123,189,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)" }}>
+                    {step.icon}
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.06em" }}>{step.n}</span>
                 </div>
                 <div>
-                  <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "10px" }}>{s.title}</h3>
-                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7 }}>{s.body}</p>
+                  <h3 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "10px", letterSpacing: "-0.02em" }}>{step.title}</h3>
+                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7 }}>{step.body}</p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* ══════ FEATURES ══════ */}
-        <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 40px 120px" }}>
-          <div style={{ textAlign: "center", marginBottom: "56px" }}>
-            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 700, marginBottom: "12px" }}>Everything you need.</h2>
-            <p style={{ fontSize: "16px", color: "var(--text-2)", maxWidth: "400px", margin: "0 auto", lineHeight: 1.65 }}>
-              Built for thinkers, engineers, and visionaries who value clarity over clutter.
-            </p>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
-            <Feature icon={<MicIcon />}    title="Voice First"        body="Arabic or English — Whisper STT transcribes with studio-level accuracy before you finish speaking." />
-            <Feature icon={<ZapIcon />}    title="Groq-Speed AI"      body="LLaMA 3.3 70B at 800+ tok/s. Your mind map renders before you lift your finger off the button." />
-            <Feature icon={<FlowIcon />}   title="React Flow Canvas"  body="Drag, rearrange, and zoom nodes freely. Every map is a living, interactive diagram — not a static image." />
-            <Feature icon={<BookIcon />}   title="Curated Resources"  body="AI surfaces relevant courses, docs, and videos for your specific topic automatically." />
-            <Feature icon={<ExportIcon />} title="Pro Exports"        body="PNG (2×), SVG, JSON, or Markdown. High-res ready for slides, Notion, and GitHub READMEs." />
-            <Feature icon={<SaveIcon />}   title="Persistent Storage" body="Maps save automatically to IndexedDB. Reopen, rename, or delete from your personal dashboard." />
+        {/* ── STATS ── */}
+        <section style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "var(--bg-alt)" }}>
+          <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", padding: "0 48px" }}>
+            {[
+              { value: "800+",  label: "Tokens / second",    sub: "via Groq LPU" },
+              { value: "<1s",   label: "Map generation",     sub: "end to end" },
+              { value: "70B",   label: "Model parameters",   sub: "LLaMA 3.3" },
+              { value: "4",     label: "Export formats",     sub: "PNG · SVG · JSON · MD" },
+            ].map((s, i) => (
+              <div key={i} style={{ padding: "36px 24px", borderRight: i < 3 ? "1px solid var(--border)" : "none" }}>
+                <div style={{ fontSize: "44px", fontWeight: 700, letterSpacing: "-0.06em", color: "var(--text)", lineHeight: 1, marginBottom: "8px" }}>{s.value}</div>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-2)", marginBottom: "2px" }}>{s.label}</div>
+                <div style={{ fontSize: "11px", color: "var(--muted)" }}>{s.sub}</div>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* ══════ CTA ══════ */}
-        <section style={{ padding: "0 40px 140px", display: "flex", justifyContent: "center" }}>
-          <div className="card" style={{
-            maxWidth: "820px", width: "100%", padding: "80px 40px", textAlign: "center",
-            background: "linear-gradient(160deg, var(--surface-2) 0%, var(--bg) 100%)",
-            boxShadow: "0 40px 100px rgba(0,0,0,0.35)",
+        {/* ── FEATURES ── */}
+        <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "120px 48px 80px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "56px", flexWrap: "wrap", gap: "20px" }}>
+            <div>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "12px" }}>Features</p>
+              <h2 style={{ fontSize: "clamp(26px, 3.5vw, 42px)", fontWeight: 700, letterSpacing: "-0.04em" }}>
+                Everything you need.<br />
+                <span style={{ color: "var(--text-2)", fontWeight: 300 }}>Nothing you don&apos;t.</span>
+              </h2>
+            </div>
+            <Link href="/app" style={{ color: "var(--accent)", fontSize: "14px", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+              Try it now <IcArrow />
+            </Link>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+            <FeatureCard icon={<IcMic />}    title="Voice First"         body="Arabic or English — Whisper v3 on Groq handles transcription with sub-second accuracy." />
+            <FeatureCard icon={<IcZap />}    title="Groq-Speed AI"       body="LLaMA 3.3 70B at 800+ tok/s. Your map is ready before you finish reading this sentence." />
+            <FeatureCard icon={<IcFlow />}   title="React Flow Canvas"   body="Drag, rearrange, and zoom nodes freely. Every map is interactive — not a static image." />
+            <FeatureCard icon={<IcBook />}   title="Curated Resources"   body="AI surfaces relevant courses, docs, and references for your topic automatically." />
+            <FeatureCard icon={<IcExport />} title="Pro Export"          body="PNG · SVG · JSON · Markdown. High-res, ready for slides, Notion, and GitHub READMEs." />
+            <FeatureCard icon={<IcSave />}   title="Auto-Save"           body="Maps persist to IndexedDB locally. Reopen, rename, or delete from your dashboard anytime." />
+          </div>
+        </section>
+
+        {/* ── QUOTE ── */}
+        <section style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ maxWidth: "760px", margin: "0 auto", padding: "96px 48px", textAlign: "center" }}>
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" style={{ marginBottom: "28px", color: "var(--border-2)" }}>
+              <path d="M0 20V12C0 5.373 4.477 1.12 13.43 0l1.14 2.4C10 3.733 7.333 6.667 7.333 11.333H12V20H0ZM16 20V12C16 5.373 20.477 1.12 29.43 0l1.14 2.4C26 3.733 23.333 6.667 23.333 11.333H28V20H16Z" fill="currentColor"/>
+            </svg>
+            <p style={{ fontSize: "clamp(18px, 2.5vw, 26px)", fontWeight: 400, color: "var(--text)", lineHeight: 1.55, letterSpacing: "-0.02em", marginBottom: "32px" }}>
+              The best thinking tools get out of the way and let you think. Audiomap turns the chaos of a voice note into a structured map before you&apos;ve even put down your pen.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--accent-dim)", border: "1px solid var(--border-2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>Motasem Bellah</div>
+                <div style={{ fontSize: "11px", color: "var(--muted)" }}>Builder of Audiomap</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── FINAL CTA ── */}
+        <section style={{ padding: "120px 48px 140px", display: "flex", justifyContent: "center" }}>
+          <div style={{
+            maxWidth: "760px", width: "100%", textAlign: "center",
+            padding: "80px 48px",
+            background: "var(--surface)",
+            border: "1px solid var(--border-2)",
+            borderRadius: "20px",
           }}>
-            <div style={{ fontSize: "40px", marginBottom: "20px" }}>🧠</div>
-            <h2 style={{ fontSize: "clamp(24px, 3.5vw, 44px)", fontWeight: 700, marginBottom: "14px", letterSpacing: "-0.03em" }}>
-              Ready to map your thinking?
+            <h2 style={{ fontSize: "clamp(26px, 4vw, 48px)", fontWeight: 700, letterSpacing: "-0.05em", marginBottom: "16px" }}>
+              Start mapping your ideas.
             </h2>
-            <p style={{ color: "var(--text-2)", fontSize: "16px", marginBottom: "40px", lineHeight: 1.7, maxWidth: "380px", margin: "0 auto 40px" }}>
-              Open the workspace and turn your first idea into a structured mind map in under 10 seconds.
+            <p style={{ color: "var(--text-2)", fontSize: "15px", maxWidth: "380px", margin: "0 auto 40px", lineHeight: 1.7 }}>
+              Free to use. No account required. Your first mind map in under 10 seconds.
             </p>
             <Link href="/app" style={{
               display: "inline-flex", alignItems: "center", gap: "8px",
-              background: "var(--text)", color: "var(--bg)", height: "52px", padding: "0 32px",
-              borderRadius: "10px", fontSize: "15px", fontWeight: 700, textDecoration: "none", transition: "opacity 0.2s",
+              background: "var(--text)", color: "var(--bg)",
+              height: "48px", padding: "0 32px", borderRadius: "9px",
+              fontSize: "14px", fontWeight: 700, textDecoration: "none",
+              transition: "opacity 0.18s",
             }}
               onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
               onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
-              Open Workspace →
+              Open Workspace
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
             </Link>
           </div>
         </section>
@@ -325,10 +420,13 @@ export default function LandingPage() {
   );
 }
 
-/* ─── SVG Icons ─── */
-const MicIcon    = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>;
-const ZapIcon    = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-const FlowIcon   = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4"/><path d="M12 11 5 17"/><path d="M12 11l7 6"/></svg>;
-const BookIcon   = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>;
-const ExportIcon = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-const SaveIcon   = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
+/* ══════════════════════════════════════════════
+   SVG ICON SET
+══════════════════════════════════════════════ */
+const IcMic    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>;
+const IcZap    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+const IcFlow   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4m0 0-7 6m7-6 7 6"/></svg>;
+const IcBook   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>;
+const IcExport = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const IcSave   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
+const IcArrow  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>;

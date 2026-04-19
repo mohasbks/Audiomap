@@ -91,6 +91,14 @@ button:disabled {
   cursor: not-allowed !important;
 }
 
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #6ea8e0 0%, #4a7bbd 45%, #82b8e8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* Glass surface */
 .glass {
   background: rgba(19, 22, 28, 0.7);
