@@ -1,12 +1,25 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import AudioRecorder from "@/components/AudioRecorder";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { flowToMarkdown } from "@/lib/mermaid-to-flow";
+import { saveProject, getProject } from "@/lib/storage";
+import type { Node, Edge } from "@xyflow/react";
 
-const MermaidDiagram = dynamic(() => import("@/components/MermaidDiagram"), { ssr: false });
+const FlowCanvas = dynamic(() => import("@/components/FlowCanvas"), {
+  ssr: false,
+  loading: () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "13px" }}>
+      Loading canvas...
+    </div>
+  ),
+});
 
+// ─── Types ─────────────────────────────────────────────────────────────────
 type Step = "idle" | "generating" | "done" | "error";
 type InputMode = "voice" | "text";
 
@@ -33,6 +46,7 @@ const TYPE_ICONS: Record<string, string> = {
   article: "📝",
 };
 
+// ─── API call ──────────────────────────────────────────────────────────────
 async function generateMap(text: string): Promise<{ mermaid: string; resources: ResourceGroup[] }> {
   const res = await fetch("/api/generate-map", {
     method: "POST",
@@ -44,7 +58,9 @@ async function generateMap(text: string): Promise<{ mermaid: string; resources: 
   return { mermaid: data.mermaid, resources: data.resources ?? [] };
 }
 
+// ─── Main Component ────────────────────────────────────────────────────────
 export default function AppWorkspace() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("idle");
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [transcript, setTranscript] = useState("");
@@ -53,37 +69,83 @@ export default function AppWorkspace() {
   const [resources, setResources] = useState<ResourceGroup[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [zoom, setZoom] = useState(1);
   const [copied, setCopied] = useState(false);
-  const diagramRef = useRef<HTMLDivElement>(null);
+  const [savedMsg, setSavedMsg] = useState("");
+  const [currentProjectId, setCurrentProjectId] = useState<string>("");
+  const [flowNodes, setFlowNodes] = useState<Node[]>([]);
+  const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+
+  const canvasDivRef = useRef<HTMLDivElement>(null);
+
+  // Load project from URL ?id=
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id) return;
+    getProject(id).then((p) => {
+      if (!p) return;
+      setMermaidCode(p.mermaid);
+      setTranscript(p.transcript);
+      setResources(p.resources as ResourceGroup[]);
+      setCurrentProjectId(p.id);
+      setStep("done");
+    });
+  }, [searchParams]);
+
+  // ─── Handlers ─────────────────────────────────────────────────────────
+  const handleFlowStateChange = useCallback((nodes: Node[], edges: Edge[]) => {
+    setFlowNodes(nodes);
+    setFlowEdges(edges);
+  }, []);
 
   const processText = useCallback(async (text: string) => {
     setTranscript(text);
     setStep("generating");
     setErrorMsg("");
-    setZoom(1);
     setResources([]);
+    setResourcesOpen(false);
+    const projectId = currentProjectId || Date.now().toString();
+    setCurrentProjectId(projectId);
+
     try {
       const result = await generateMap(text);
       setMermaidCode(result.mermaid);
       setResources(result.resources);
       setHistory((prev) => [
-        { id: Date.now().toString(), transcript: text, mermaid: result.mermaid, resources: result.resources },
-        ...prev.filter(i => i.transcript !== text).slice(0, 9), // Keep distinct history entries
+        { id: projectId, transcript: text, mermaid: result.mermaid, resources: result.resources },
+        ...prev.filter((i) => i.transcript !== text).slice(0, 9),
       ]);
+
+      // Auto-save to IndexedDB
+      const name = text.length > 40 ? text.slice(0, 40) + "…" : text;
+      await saveProject({
+        id: projectId,
+        name,
+        transcript: text,
+        mermaid: result.mermaid,
+        nodes: [],
+        edges: [],
+        resources: result.resources,
+      });
+
+      setSavedMsg("Saved!");
+      setTimeout(() => setSavedMsg(""), 2500);
       setStep("done");
     } catch (err) {
       console.error(err);
       setErrorMsg("Failed to generate map. Try again.");
       setStep("error");
     }
-  }, []);
+  }, [currentProjectId]);
 
-  const handleTextSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!textInput.trim()) return;
-    await processText(textInput.trim());
-  }, [textInput, processText]);
+  const handleTextSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!textInput.trim()) return;
+      await processText(textInput.trim());
+    },
+    [textInput, processText]
+  );
 
   const handleError = useCallback((msg: string) => {
     setErrorMsg(msg);
@@ -97,20 +159,25 @@ export default function AppWorkspace() {
     setResources([]);
     setErrorMsg("");
     setTextInput("");
-    setZoom(1);
+    setCurrentProjectId("");
+    setResourcesOpen(false);
   };
 
-  const handleCopy = async () => {
+  // ─── Export functions ──────────────────────────────────────────────────
+  const handleCopyCode = async () => {
     await navigator.clipboard.writeText(mermaidCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleExportPng = async () => {
-    if (!diagramRef.current) return;
+    if (!canvasDivRef.current) return;
     try {
       const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(diagramRef.current, { backgroundColor: "#0d0f13", pixelRatio: 2 });
+      const dataUrl = await toPng(canvasDivRef.current, {
+        backgroundColor: "#0a0b0e",
+        pixelRatio: 2,
+      });
       const link = document.createElement("a");
       link.download = "audiomap.png";
       link.href = dataUrl;
@@ -120,39 +187,110 @@ export default function AppWorkspace() {
     }
   };
 
+  const handleExportSvg = async () => {
+    if (!canvasDivRef.current) return;
+    try {
+      const { toSvg } = await import("html-to-image");
+      const dataUrl = await toSvg(canvasDivRef.current, {
+        backgroundColor: "#0a0b0e",
+      });
+      const link = document.createElement("a");
+      link.download = "audiomap.svg";
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("SVG export failed:", err);
+    }
+  };
+
+  const handleExportJson = () => {
+    const data = {
+      transcript,
+      mermaid: mermaidCode,
+      nodes: flowNodes,
+      edges: flowEdges,
+      resources,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "audiomap.json";
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyMarkdown = async () => {
+    const md = flowToMarkdown(flowNodes, flowEdges);
+    await navigator.clipboard.writeText(md);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const isProcessing = step === "generating";
+  const hasMap = !!mermaidCode;
+
+  // Grouped export actions
+  const exportActions = [
+    { label: "PNG", icon: "🖼", action: handleExportPng },
+    { label: "SVG", icon: "✏️", action: handleExportSvg },
+    { label: "JSON", icon: "{ }", action: handleExportJson },
+    { label: "Markdown", icon: "📋", action: handleCopyMarkdown },
+  ];
 
   return (
-    <div style={{ display: "flex", height: "100vh", w: "100%", overflow: "hidden", background: "var(--bg)" }}>
-      
-      {/* 🔴 LEFT SIDEBAR - CONTROLS & HISTORY */}
+    <div style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", background: "var(--bg)" }}>
+
+      {/* ─── LEFT SIDEBAR ─── */}
       <aside style={{
-        width: "360px", background: "var(--surface)", borderRight: "1px solid var(--border)",
-        display: "flex", flexDirection: "column", zIndex: 10, boxShadow: "4px 0 24px rgba(0,0,0,0.2)"
+        width: "340px",
+        background: "var(--surface)",
+        borderRight: "1px solid var(--border)",
+        display: "flex",
+        flexDirection: "column",
+        zIndex: 10,
+        boxShadow: "4px 0 24px rgba(0,0,0,0.2)",
+        flexShrink: 0,
       }}>
-        {/* Branding header */}
-        <div style={{ padding: "24px 24px 20px", borderBottom: "1px solid var(--border)" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600, fontSize: "16px", color: "var(--text)", textDecoration: "none" }}>
-            <div style={{ width: "20px", height: "20px", borderRadius: "4px", background: "linear-gradient(135deg, var(--accent) 0%, #3b5b7d 100%)" }} />
-            Audiomap App
+
+        {/* Header */}
+        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "9px", fontWeight: 700, fontSize: "15px", color: "var(--text)", textDecoration: "none" }}>
+            <div style={{ width: "20px", height: "20px", borderRadius: "5px", background: "linear-gradient(135deg, var(--accent) 0%, #3b5b7d 100%)" }} />
+            audiomap
           </Link>
-          <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "8px", lineHeight: 1.5 }}>
-            Describe your idea clearly and let AI build the structure.
-          </p>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <ThemeToggle />
+            <Link href="/dashboard" title="My Maps" style={{
+              width: "36px", height: "36px", borderRadius: "8px",
+              border: "1px solid var(--border-2)", display: "flex", alignItems: "center", justifyContent: "center",
+              color: "var(--text-2)", textDecoration: "none", transition: "all 0.2s",
+            }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-2)"; }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+            </Link>
+          </div>
         </div>
 
-        <div style={{ padding: "24px", flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "24px" }}>
-          
-          {/* Input Panel */}
+        {/* Scrollable Body */}
+        <div style={{ padding: "20px", flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+          {/* Input Mode Toggle */}
           <div>
-            <div style={{ display: "flex", padding: "4px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", marginBottom: "16px", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", padding: "3px", background: "rgba(0,0,0,0.15)", borderRadius: "8px", marginBottom: "14px", border: "1px solid var(--border)" }}>
               {(["voice", "text"] as InputMode[]).map((mode) => (
                 <button key={mode} onClick={() => setInputMode(mode)} style={{
-                  flex: 1, padding: "8px", background: inputMode === mode ? "var(--bg)" : "transparent", border: "none",
-                  borderRadius: "6px", fontSize: "12px", fontWeight: 500,
+                  flex: 1, padding: "8px", background: inputMode === mode ? "var(--bg)" : "transparent",
+                  border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600,
                   color: inputMode === mode ? "var(--text)" : "var(--muted)",
                   boxShadow: inputMode === mode ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
-                  cursor: "pointer", transition: "all 0.15s"
+                  cursor: "pointer", transition: "all 0.15s",
                 }}>
                   {mode === "voice" ? "🎙 Voice" : "✍️ Text"}
                 </button>
@@ -162,82 +300,103 @@ export default function AppWorkspace() {
             {inputMode === "voice" ? (
               <AudioRecorder onTranscript={processText} onError={handleError} isProcessing={isProcessing} />
             ) : (
-              <form onSubmit={handleTextSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <form onSubmit={handleTextSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <textarea
-                  value={textInput} onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="e.g. Map out a user reg flow..."
-                  rows={5} disabled={isProcessing}
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  placeholder="e.g. Map out a user registration flow..."
+                  rows={5}
+                  disabled={isProcessing}
                   style={{
-                    width: "100%", padding: "12px", background: "rgba(0,0,0,0.1)",
+                    width: "100%", padding: "12px", background: "rgba(0,0,0,0.12)",
                     border: "1px solid var(--border)", borderRadius: "8px",
                     color: "var(--text)", fontSize: "13px", lineHeight: 1.6,
-                    resize: "none", outline: "none", fontFamily: "inherit", transition: "border-color 0.2s",
+                    resize: "none", outline: "none", fontFamily: "inherit",
+                    transition: "border-color 0.2s",
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = "var(--border-focus)")}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
                   onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
                 />
                 <button type="submit" disabled={isProcessing || !textInput.trim()} style={{
-                  padding: "12px", width: "100%",
-                  background: isProcessing || !textInput.trim() ? "var(--border)" : "var(--accent)", color: "#fff",
-                  border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
-                  cursor: isProcessing || !textInput.trim() ? "not-allowed" : "pointer", transition: "opacity 0.2s",
-                  opacity: (isProcessing || !textInput.trim()) ? 0.6 : 1
+                  padding: "11px", width: "100%",
+                  background: isProcessing || !textInput.trim() ? "var(--border)" : "var(--accent)",
+                  color: "#fff", border: "none", borderRadius: "8px",
+                  fontSize: "13px", fontWeight: 600, cursor: "pointer", transition: "opacity 0.2s",
                 }}>
-                  {isProcessing ? "Processing..." : "Generate Map"}
+                  {isProcessing ? "Generating…" : "Generate Map →"}
                 </button>
               </form>
             )}
 
-            {/* Status Messages */}
+            {/* Status */}
             {step !== "idle" && (
-              <div className="animate-slide-up" style={{
-                marginTop: "16px", padding: "12px", borderRadius: "8px",
+              <div style={{
+                marginTop: "12px", padding: "10px 12px", borderRadius: "8px",
                 background: "var(--bg)", border: "1px solid var(--border)",
                 fontSize: "12px", color: step === "error" ? "var(--error)" : "var(--muted)", lineHeight: 1.5,
               }}>
-                {step === "generating" && <span><span className="pulse-ring" style={{ display: "inline-block", width: "8px", height: "8px", background: "var(--accent)", borderRadius: "50%", marginRight: "8px" }} /> Generating mind map...</span>}
-                {step === "done" && transcript && <span><span style={{ color: "var(--accent)", marginRight: "4px" }}>✓</span> "{transcript.length > 80 ? transcript.slice(0, 80) + '...' : transcript}"</span>}
+                {step === "generating" && (
+                  <span>
+                    <span className="pulse-ring" style={{ display: "inline-block", width: "7px", height: "7px", background: "var(--accent)", borderRadius: "50%", marginRight: "8px" }} />
+                    Generating mind map…
+                  </span>
+                )}
+                {step === "done" && transcript && (
+                  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ color: "var(--accent)" }}>✓</span>
+                    "{transcript.length > 60 ? transcript.slice(0, 60) + "…" : transcript}"
+                    {savedMsg && (
+                      <span style={{ marginLeft: "auto", color: "var(--accent)", fontWeight: 600, fontSize: "11px" }}>
+                        {savedMsg}
+                      </span>
+                    )}
+                  </span>
+                )}
                 {step === "error" && <span>⚠ {errorMsg}</span>}
               </div>
             )}
-            
+
             {(step === "done" || step === "error") && (
               <button onClick={reset} style={{
-                marginTop: "12px", padding: "8px", width: "100%", background: "transparent",
-                border: "1px dashed var(--border-focus)", borderRadius: "8px", color: "var(--muted)",
-                fontSize: "12px", cursor: "pointer", transition: "all 0.2s"
+                marginTop: "10px", padding: "8px", width: "100%", background: "transparent",
+                border: "1px dashed var(--border-2)", borderRadius: "8px",
+                color: "var(--muted)", fontSize: "12px", cursor: "pointer", transition: "all 0.2s",
               }}
-              onMouseEnter={(e) => { (e.target as HTMLElement).style.borderColor = "var(--accent)"; (e.target as HTMLElement).style.color = "var(--text)"; }}
-              onMouseLeave={(e) => { (e.target as HTMLElement).style.borderColor = "var(--border-focus)"; (e.target as HTMLElement).style.color = "var(--muted)"; }}
+                onMouseEnter={(e) => { (e.currentTarget.style.borderColor = "var(--accent)"); (e.currentTarget.style.color = "var(--accent)"); }}
+                onMouseLeave={(e) => { (e.currentTarget.style.borderColor = "var(--border-2)"); (e.currentTarget.style.color = "var(--muted)"); }}
               >
-                + Create New Map
+                + New Map
               </button>
             )}
           </div>
 
           <hr style={{ border: "none", borderTop: "1px solid var(--border)" }} />
 
-          {/* History */}
+          {/* Recent sessions */}
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: "11px", color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "12px", fontWeight: 600 }}>
+            <p style={{ fontSize: "11px", color: "var(--muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>
               Recent Sessions
             </p>
             {history.length === 0 ? (
-              <div style={{ padding: "16px", textAlign: "center", border: "1px dashed var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--muted)" }}>No history yet.</div>
+              <div style={{ padding: "14px", textAlign: "center", border: "1px dashed var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--muted)" }}>
+                No history yet.
+              </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {history.map((item) => (
-                  <button key={item.id} onClick={() => { setMermaidCode(item.mermaid); setTranscript(item.transcript); setResources(item.resources); setStep("done"); setZoom(1); }}
+                  <button key={item.id}
+                    onClick={() => { setMermaidCode(item.mermaid); setTranscript(item.transcript); setResources(item.resources); setStep("done"); setResourcesOpen(false); }}
                     style={{
-                      padding: "10px 12px", background: "transparent", border: "1px solid var(--border)", borderRadius: "8px",
-                      color: "var(--text)", fontSize: "12px", cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", gap: "8px", alignItems: "center"
+                      padding: "9px 12px", background: "transparent", border: "1px solid var(--border)",
+                      borderRadius: "8px", color: "var(--text)", fontSize: "12px", cursor: "pointer",
+                      textAlign: "left", transition: "all 0.15s", display: "flex", gap: "8px", alignItems: "center",
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                     }}
-                    onMouseEnter={(e) => { (e.target as HTMLElement).style.borderColor = "var(--border-focus)"; (e.target as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
-                    onMouseLeave={(e) => { (e.target as HTMLElement).style.borderColor = "var(--border)"; (e.target as HTMLElement).style.background = "transparent"; }}
+                    onMouseEnter={(e) => { (e.currentTarget.style.borderColor = "var(--border-2)"); (e.currentTarget.style.background = "rgba(255,255,255,0.02)"); }}
+                    onMouseLeave={(e) => { (e.currentTarget.style.borderColor = "var(--border)"); (e.currentTarget.style.background = "transparent"); }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    {item.transcript.slice(0, 40)}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{item.transcript.slice(0, 38)}</span>
                   </button>
                 ))}
               </div>
@@ -246,106 +405,152 @@ export default function AppWorkspace() {
         </div>
       </aside>
 
-      {/* 🔵 RIGHT CANVAS - DIAGRAM & RESOURCES */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
-        
-        {/* Canvas Toolbar */}
+      {/* ─── MAIN CANVAS AREA ─── */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+
+        {/* Toolbar */}
         <header style={{
-          height: "60px", borderBottom: "1px solid var(--border)", background: "rgba(13, 15, 19, 0.6)",
-          backdropFilter: "blur(12px)", display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "0 24px", zIndex: 5
+          height: "56px",
+          borderBottom: "1px solid var(--border)",
+          background: "rgba(13, 15, 19, 0.7)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "0 20px",
+          zIndex: 5,
+          flexShrink: 0,
         }}>
-          <div>
-            {!mermaidCode ? (
-              <span style={{ fontSize: "13px", color: "var(--muted)" }}>Workspace is empty. Map it out.</span>
-            ) : (
-              <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text)" }}>Workspace Canvas</span>
-            )}
+          <div style={{ fontSize: "13px", color: hasMap ? "var(--text-2)" : "var(--muted)", fontWeight: 500 }}>
+            {hasMap ? (
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
+                Interactive Canvas
+                <span style={{ color: "var(--muted)", fontSize: "11px" }}>— drag nodes to rearrange</span>
+              </span>
+            ) : "Workspace is empty. Describe an idea to map it."}
           </div>
 
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", opacity: mermaidCode ? 1 : 0.5, pointerEvents: mermaidCode ? "auto" : "none" }}>
-            <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px", overflow: "hidden" }}>
-              {([["−", -0.2], ["+", 0.2]] as [string, number][]).map(([label, delta]) => (
-                <button key={label} onClick={() => setZoom((z) => Math.min(2.5, Math.max(0.4, z + delta)))} style={{
-                  width: "32px", height: "30px", background: "transparent", border: "none", color: "var(--muted)", fontSize: "16px", cursor: "pointer", transition: "background 0.1s"
-                }} onMouseEnter={(e) => (e.target as HTMLElement).style.background = "var(--border-focus)"} onMouseLeave={(e) => (e.target as HTMLElement).style.background = "transparent"}>
-                  {label}
-                </button>
-              ))}
-              <button onClick={() => setZoom(1)} style={{
-                padding: "0 12px", height: "30px", background: "transparent", border: "none", borderLeft: "1px solid var(--border)",
-                color: "var(--muted)", fontSize: "12px", cursor: "pointer"
-              }}>
-                {Math.round(zoom * 100)}%
-              </button>
-            </div>
-            
-            <div style={{ width: "1px", height: "24px", background: "var(--border)", margin: "0 8px" }} />
-            
-            <button onClick={handleCopy} className="glass-panel" style={{ padding: "0 14px", height: "32px", borderRadius: "6px", color: copied ? "var(--accent)" : "var(--text)", fontSize: "12px", cursor: "pointer", border: copied ? "1px solid var(--accent)" : "1px solid var(--border)"}}>
-              {copied ? "Copied" : "Copy Code"}
-            </button>
-            <button onClick={handleExportPng} className="glass-panel" style={{ padding: "0 14px", height: "32px", borderRadius: "6px", color: "var(--text)", fontSize: "12px", cursor: "pointer", display: "flex", gap: "6px", alignItems: "center"}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
-              Export PNG
-            </button>
+          {/* Toolbar Actions */}
+          <div style={{ display: "flex", gap: "6px", alignItems: "center", opacity: hasMap ? 1 : 0.4, pointerEvents: hasMap ? "auto" : "none" }}>
+
+            {/* Copy Mermaid Code */}
+            <ToolbarBtn onClick={handleCopyCode} active={copied}>
+              {copied ? "✓ Copied" : "{ } Code"}
+            </ToolbarBtn>
+
+            <div style={{ width: "1px", height: "20px", background: "var(--border)" }} />
+
+            {/* Export group */}
+            {exportActions.map((a) => (
+              <ToolbarBtn key={a.label} onClick={a.action}>
+                {a.icon} {a.label}
+              </ToolbarBtn>
+            ))}
+
+            {/* Resources toggle */}
+            {resources.length > 0 && (
+              <>
+                <div style={{ width: "1px", height: "20px", background: "var(--border)" }} />
+                <ToolbarBtn onClick={() => setResourcesOpen((o) => !o)} active={resourcesOpen}>
+                  📚 Resources{resourcesOpen ? " ×" : ""}
+                </ToolbarBtn>
+              </>
+            )}
           </div>
         </header>
 
-        {/* The Diagram Area */}
+        {/* Canvas */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {!mermaidCode ? (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--border-focus)", userSelect: "none" }}>
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
-            </div>
+          {!hasMap ? (
+            <EmptyState />
           ) : (
-            <div className="animate-slide-up" style={{ width: "100%", height: "100%", overflow: "auto", padding: "40px", cursor: "grab" }}>
-              <div ref={diagramRef} style={{ transform: `scale(${zoom})`, transformOrigin: "center center", transition: "transform 0.15s ease", minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <MermaidDiagram code={mermaidCode} />
+            <FlowCanvas
+              code={mermaidCode}
+              onStateChange={handleFlowStateChange}
+              canvasDivRef={canvasDivRef}
+            />
+          )}
+
+          {/* Resources Overlay */}
+          {resourcesOpen && resources.length > 0 && (
+            <div style={{
+              position: "absolute", bottom: "16px", left: "16px", right: "16px",
+              background: "rgba(19, 22, 28, 0.92)", backdropFilter: "blur(24px)",
+              border: "1px solid var(--border)", borderRadius: "16px", padding: "20px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5)", maxHeight: "260px", overflowY: "auto", zIndex: 20,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>Curated Resources</span>
+                </div>
+                <button onClick={() => setResourcesOpen(false)} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "16px", lineHeight: 1 }}>×</button>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+                {resources.map((group) => (
+                  <div key={group.topic}>
+                    <p style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: "7px", fontWeight: 700 }}>
+                      {group.topic}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                      {group.links.map((link, i) => (
+                        <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{
+                          display: "flex", alignItems: "center", gap: "8px", padding: "7px 9px",
+                          background: "rgba(255,255,255,0.03)", border: "1px solid transparent",
+                          borderRadius: "7px", textDecoration: "none", transition: "all 0.15s",
+                        }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "var(--border-2)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "transparent"; }}
+                        >
+                          <span style={{ fontSize: "11px" }}>{TYPE_ICONS[link.type] ?? "🔗"}</span>
+                          <span style={{ fontSize: "11px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link.title}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
-
-        {/* Resources Drawer (Overlay layout at the bottom) */}
-        {resources.length > 0 && (
-          <div className="animate-slide-up" style={{
-            position: "absolute", bottom: "24px", left: "24px", right: "24px",
-            background: "rgba(21, 24, 30, 0.8)", backdropFilter: "blur(24px)",
-            border: "1px solid var(--border)", borderRadius: "16px", padding: "20px",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.4)", maxHeight: "250px", overflowY: "auto"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text)" }}>Curated Learning Resources</h3>
-            </div>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px" }}>
-              {resources.map((group) => (
-                <div key={group.topic}>
-                  <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted)", marginBottom: "8px", fontWeight: 600 }}>{group.topic}</p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {group.links.map((link, i) => (
-                      <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{
-                        display: "flex", alignItems: "center", gap: "8px", padding: "8px",
-                        background: "rgba(255,255,255,0.03)", border: "1px solid transparent",
-                        borderRadius: "8px", textDecoration: "none", transition: "all 0.15s",
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget.style.background = "rgba(255,255,255,0.06)"); (e.currentTarget.style.borderColor = "var(--border-focus)"); }}
-                      onMouseLeave={(e) => { (e.currentTarget.style.background = "rgba(255,255,255,0.03)"); (e.currentTarget.style.borderColor = "transparent"); }}
-                      >
-                        <span style={{ fontSize: "12px", background: "var(--bg)", border: "1px solid var(--border)", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px" }}>{TYPE_ICONS[link.type] ?? "🔗"}</span>
-                        <span style={{ fontSize: "12px", color: "var(--text)", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}>{link.title}</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </main>
+    </div>
+  );
+}
 
+// ─── Sub-components ────────────────────────────────────────────────────────
+function ToolbarBtn({ children, onClick, active }: { children: React.ReactNode; onClick: () => void; active?: boolean }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: "0 12px", height: "30px", background: active ? "var(--accent-dim)" : "var(--surface)",
+      border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+      borderRadius: "6px", color: active ? "var(--accent)" : "var(--text-2)",
+      fontSize: "11px", fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
+      display: "flex", alignItems: "center", gap: "5px", whiteSpace: "nowrap",
+    }}
+      onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text)"; } }}
+      onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.color = "var(--text-2)"; } }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", userSelect: "none" }}>
+      <div style={{ width: "64px", height: "64px", borderRadius: "16px", border: "1px dashed var(--border-2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--border-2)" strokeWidth="1.5" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+          <path d="M2 12h20"/>
+        </svg>
+      </div>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-2)", marginBottom: "4px" }}>Empty Canvas</p>
+        <p style={{ fontSize: "12px", color: "var(--muted)" }}>Speak or type an idea to generate an interactive mind map</p>
+      </div>
     </div>
   );
 }
