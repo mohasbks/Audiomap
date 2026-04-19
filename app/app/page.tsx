@@ -240,19 +240,10 @@ function AppWorkspaceInner() {
   ];
 
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", background: "var(--bg)" }}>
+    <div className="app-layout">
 
       {/* ─── LEFT SIDEBAR ─── */}
-      <aside style={{
-        width: "340px",
-        background: "var(--surface)",
-        borderRight: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        zIndex: 10,
-        boxShadow: "4px 0 24px rgba(0,0,0,0.2)",
-        flexShrink: 0,
-      }}>
+      <aside className="app-sidebar">
 
         {/* Header */}
         <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -406,10 +397,10 @@ function AppWorkspaceInner() {
       </aside>
 
       {/* ─── MAIN CANVAS AREA ─── */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+      <main className="app-main">
 
         {/* Toolbar */}
-        <header style={{
+        <header className="canvas-toolbar" style={{
           height: "56px",
           borderBottom: "1px solid var(--border)",
           background: "rgba(13, 15, 19, 0.7)",
@@ -424,15 +415,15 @@ function AppWorkspaceInner() {
           <div style={{ fontSize: "13px", color: hasMap ? "var(--text-2)" : "var(--muted)", fontWeight: 500 }}>
             {hasMap ? (
               <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
-                Interactive Canvas
-                <span style={{ color: "var(--muted)", fontSize: "11px" }}>— drag nodes to rearrange</span>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent)", display: "inline-block", flexShrink: 0 }} />
+                <span style={{ whiteSpace: "nowrap" }}>Interactive Canvas</span>
+                <span style={{ color: "var(--muted)", fontSize: "11px", whiteSpace: "nowrap", display: "inline-block" }}>— drag nodes to rearrange</span>
               </span>
             ) : "Workspace is empty. Describe an idea to map it."}
           </div>
 
           {/* Toolbar Actions */}
-          <div style={{ display: "flex", gap: "6px", alignItems: "center", opacity: hasMap ? 1 : 0.4, pointerEvents: hasMap ? "auto" : "none" }}>
+          <div className="canvas-toolbar-actions" style={{ display: "flex", gap: "6px", alignItems: "center", opacity: hasMap ? 1 : 0.4, pointerEvents: hasMap ? "auto" : "none" }}>
 
             {/* Copy Mermaid Code */}
             <ToolbarBtn onClick={handleCopyCode} active={copied}>
