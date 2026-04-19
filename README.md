@@ -1,150 +1,158 @@
-# Audiomap
+<div align="center">
 
-**Turn voice into interactive mind maps — in under a second.**
+```
+   ___         ___  _  _  ___  ___  _  _   _   ___
+  / _ \ /\  /\|   \| |/ // _ \|  \/  || | / \ | _ \
+ / /_\ \| |  | | |) | ' /| (_) | |\/| || |/ _ \|  _/
+ \____/ |_|  |_|___/|_|\_\\___/|_|  |_||_/_/ \_|_|
+```
 
-Audiomap is an AI-powered tool that converts voice recordings or text prompts into fully interactive, draggable mind maps. Built on Groq LPU, LLaMA 3.3 70B, and Whisper v3.
+**Voice → Structured Mind Maps. Instantly.**
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=flat-square)](https://audiomap-ten.vercel.app)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
-[![Groq](https://img.shields.io/badge/Groq-LPU-orange?style=flat-square)](https://groq.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+*Speak a thought. LLaMA 3.3 70B on Groq LPU maps it in under 1 second.*
 
----
+<br/>
 
-## What it does
+[![Live Demo](https://img.shields.io/badge/▶_Live_Demo-audiomap--five.vercel.app-0070f3?style=for-the-badge)](https://audiomap-five.vercel.app)
 
-1. **Speak or type** any concept, topic, or question
-2. **Whisper v3** transcribes your voice with near-human accuracy (Arabic + English)
-3. **LLaMA 3.3 70B** on Groq LPU structures it into a hierarchical mind map in <1s
-4. **React Flow** renders an interactive, draggable canvas
-5. **Export** as PNG, SVG, JSON, or Markdown
+<br/>
 
----
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=next.js&logoColor=white)
+![Groq](https://img.shields.io/badge/Groq_LPU-F55036?style=flat-square)
+![LLaMA](https://img.shields.io/badge/LLaMA_3.3_70B-6e40c9?style=flat-square)
+![Whisper](https://img.shields.io/badge/Whisper_v3-10a37f?style=flat-square)
+![React Flow](https://img.shields.io/badge/React_Flow-ff0072?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)
 
-## Features
-
-| Feature | Description |
-|---|---|
-| Voice Input | Arabic & English via Whisper v3 on Groq |
-| Text Input | Direct prompt to mind map |
-| Interactive Canvas | React Flow — drag, zoom, pan nodes |
-| Auto-Save | IndexedDB local persistence, no backend needed |
-| Dashboard | Manage all saved maps |
-| Export | PNG (2×), SVG, JSON, Markdown |
-| Dark / Light Mode | System-aware theme toggle |
-| Curated Resources | AI-surfaced docs, courses, videos per topic |
+</div>
 
 ---
 
-## Tech Stack
+## What is Audiomap?
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| AI Inference | Groq LPU — 800+ tok/s |
-| Language Model | Meta LLaMA 3.3 70B |
-| Speech-to-Text | OpenAI Whisper v3 |
-| Canvas | React Flow (`@xyflow/react`) |
-| Storage | IndexedDB via `idb` |
-| Styling | Vanilla CSS (no Tailwind) |
-| Deployment | Vercel |
+Audiomap converts a voice note or typed idea into a fully interactive, draggable mind map — no friction, no manual diagramming, no waiting.
+
+Built for learners, engineers, and anyone who thinks faster than they type.
 
 ---
 
-## Getting Started
+## How it works
 
-### Prerequisites
+```
+┌─────────────┐    ┌───────────────┐    ┌────────────────────┐    ┌─────────────────────┐
+│ Voice / Text│───▶│ Whisper v3    │───▶│  LLaMA 3.3 70B     │───▶│  React Flow Canvas  │
+│  (any lang) │    │  Transcribe   │    │  Structure → Mermaid│    │  Drag · Zoom · Pan  │
+└─────────────┘    └───────────────┘    └────────────────────┘    └─────────────────────┘
+                         Groq LPU — 800+ tokens/sec — end-to-end < 1 second
+```
 
-- Node.js 18+
-- A [Groq API Key](https://console.groq.com) (free tier available)
+All AI calls are proxied through Next.js API routes. Your key never leaves the server.
 
-### Installation
+---
+
+## Features at a glance
+
+| | Feature | Detail |
+|---|---|---|
+| **Voice Input** | Talk freely in Arabic or English | Whisper v3 handles transcription |
+| **Text Input** | Type any idea or topic | Direct LLM prompt |
+| **Interactive Canvas** | Drag, zoom, connect nodes | Powered by React Flow |
+| **Auto-Save** | No account, no database | IndexedDB on your device |
+| **Dashboard** | Manage all your maps | Rename, delete, reopen |
+| **Export** | PNG · SVG · JSON · Markdown | High-res, share anywhere |
+| **Dark / Light mode** | System-aware toggle | Smooth theme switching |
+| **Curated Resources** | AI-surfaced learning links | Per topic, per node |
+
+---
+
+## Quick Start
+
+**Prerequisites:** Node.js 18+ · A [free Groq API key](https://console.groq.com)
 
 ```bash
-git clone https://github.com/mohasbks/Audiomap.git
-cd Audiomap
+# 1. Clone
+git clone https://github.com/mohasbks/Audiomap.git && cd Audiomap
+
+# 2. Install
 npm install
-```
 
-### Environment Variables
+# 3. Set your key
+echo "GROQ_API_KEY=gsk_your_key_here" > .env.local
 
-Create a `.env.local` file in the root:
-
-```env
-GROQ_API_KEY=gsk_your_key_here
-```
-
-Get your key from [console.groq.com](https://console.groq.com) — it's free.
-
-### Run locally
-
-```bash
+# 4. Run
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open **http://localhost:3000**, hit the mic, and speak.
 
 ---
 
-## Project Structure
-
-```
-audiomap/
-├── app/
-│   ├── page.tsx          # Landing page
-│   ├── app/page.tsx      # Main workspace
-│   ├── dashboard/        # Saved maps
-│   ├── pricing/          # Pricing page
-│   ├── about/            # Architecture page
-│   └── api/
-│       ├── generate-map/ # LLaMA 3.3 → Mermaid
-│       └── transcribe/   # Whisper STT
-├── components/
-│   ├── FlowCanvas.tsx    # React Flow wrapper
-│   ├── AudioRecorder.tsx # MediaRecorder API
-│   └── ThemeToggle.tsx
-└── lib/
-    ├── storage.ts         # IndexedDB helpers
-    └── mermaid-to-flow.ts # Mermaid → React Flow nodes
-```
-
----
-
-## How It Works
-
-```
-Voice/Text → Whisper v3 (STT) → LLaMA 3.3 70B → Mermaid Syntax → React Flow Canvas
-```
-
-All AI calls go through Next.js API routes so your Groq key never reaches the client.
-
----
-
-## Deploy on Vercel
+## Deploy in one click
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mohasbks/Audiomap)
 
-Add your `GROQ_API_KEY` in Vercel's Environment Variables settings after deployment.
+> After deploying, go to **Project → Settings → Environment Variables** and add `GROQ_API_KEY`.
+
+---
+
+## Tech stack
+
+```
+Frontend    Next.js 16 (App Router · Turbopack · Vanilla CSS)
+AI Model    Meta LLaMA 3.3 70B  via Groq LPU
+STT         OpenAI Whisper v3   via Groq
+Canvas      @xyflow/react (React Flow)
+Persistence IndexedDB           via idb
+Hosting     Vercel
+```
+
+---
+
+## Project structure
+
+```
+app/
+├── page.tsx              ← Landing page
+├── app/page.tsx          ← Main workspace
+├── dashboard/page.tsx    ← Saved maps
+├── pricing/page.tsx
+├── about/page.tsx        ← Architecture
+└── api/
+    ├── generate-map/     ← LLaMA 3.3 → Mermaid
+    └── transcribe/       ← Whisper STT
+
+components/
+├── FlowCanvas.tsx        ← React Flow wrapper
+├── AudioRecorder.tsx     ← MediaRecorder API
+└── ThemeToggle.tsx
+
+lib/
+├── storage.ts            ← IndexedDB helpers
+└── mermaid-to-flow.ts    ← Mermaid → Flow nodes
+```
 
 ---
 
 ## Roadmap
 
-- [ ] Shareable links (Base64 URL encoding)
-- [ ] Inline node editing on the canvas
-- [ ] Multi-language UI
-- [ ] Cloud sync (Supabase/PlanetScale)
-- [ ] Team collaboration (Yjs / WebSockets)
+- [ ] Shareable links via Base64 URL
+- [ ] Inline node editing on canvas
+- [ ] AI "Expand Node" — right-click to deep-dive any concept
+- [ ] Cloud sync (Supabase)
+- [ ] Real-time collaboration (Yjs + WebSockets)
 - [ ] Browser extension
-
----
-
-## Author
-
-Built by **Motasem Bellah** ([@mohasbks](https://github.com/mohasbks))
+- [ ] Public API (`POST /api/v1/map`)
 
 ---
 
 ## License
 
-MIT — do whatever you want with it.
+MIT. Fork it, ship it, sell it.
+
+---
+
+<div align="center">
+  Built by <a href="https://github.com/mohasbks"><strong>Motasem Bellah</strong></a>
+  <br/>
+  <sub>⭐ Star the repo if Audiomap saved you time</sub>
+</div>
