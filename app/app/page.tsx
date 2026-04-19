@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -59,7 +59,7 @@ async function generateMap(text: string): Promise<{ mermaid: string; resources: 
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
-export default function AppWorkspace() {
+function AppWorkspaceInner() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("idle");
   const [inputMode, setInputMode] = useState<InputMode>("voice");
@@ -552,5 +552,18 @@ function EmptyState() {
         <p style={{ fontSize: "12px", color: "var(--muted)" }}>Speak or type an idea to generate an interactive mind map</p>
       </div>
     </div>
+  );
+}
+
+// ─── Suspense wrapper (required for useSearchParams in Next.js) ──────────────
+export default function AppWorkspace() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)", color: "var(--muted)", fontSize: "14px" }}>
+        Loading…
+      </div>
+    }>
+      <AppWorkspaceInner />
+    </Suspense>
   );
 }
