@@ -180,7 +180,7 @@ export default function PricingPage() {
         {/* ── FAQ ── */}
         <section style={{ borderTop: "1px solid var(--border)", background: "var(--bg-alt)" }}>
           <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 48px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "80px", alignItems: "flex-start" }}>
+            <div className="r-grid-2-faq">
               <div>
                 <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "12px" }}>FAQ</p>
                 <h2 style={{ fontSize: "28px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.2, marginBottom: "14px" }}>Common questions</h2>

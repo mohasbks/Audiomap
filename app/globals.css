@@ -361,3 +361,239 @@ button:disabled {
   max-width: 100%;
   height: auto;
 }
+
+/* ============================================================
+   RESPONSIVE LAYOUT UTILITIES
+   ============================================================ */
+
+/* Grid helpers — replaces inline gridTemplateColumns */
+.r-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.r-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.r-grid-2-faq {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 80px;
+  align-items: flex-start;
+}
+.r-grid-footer {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+}
+.r-grid-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.r-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.r-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.r-tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.r-pipeline {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.r-pipeline-step {
+  flex: 1;
+}
+
+/* Powered-by scrollable strip */
+.powered-strip {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.powered-strip::-webkit-scrollbar { display: none; }
+
+/* Hamburger nav (hidden on desktop) */
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.nav-links-desktop {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 98;
+}
+.nav-mobile-panel {
+  display: none;
+  flex-direction: column;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 24px;
+  gap: 8px;
+  z-index: 99;
+}
+.nav-mobile-panel.open {
+  display: flex;
+}
+.nav-mobile-link {
+  display: block;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  transition: color 0.18s;
+}
+.nav-mobile-link:last-child {
+  border-bottom: none;
+}
+.nav-mobile-link:hover { color: var(--text); }
+.nav-mobile-cta {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ============================================================
+   TABLET — max 1024px
+   ============================================================ */
+@media (max-width: 1024px) {
+  .r-grid-3       { grid-template-columns: repeat(2, 1fr); }
+  .r-grid-features { grid-template-columns: repeat(2, 1fr); }
+  .r-stats        { grid-template-columns: repeat(2, 1fr); }
+  .r-grid-footer  { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .r-grid-2-faq   { grid-template-columns: 1fr; gap: 40px; }
+  .r-tech-grid    { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   MOBILE — max 768px
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* Navbar */
+  .nav-links-desktop { display: none; }
+  .nav-hamburger     { display: flex; }
+  .site-nav          { padding: 0 20px !important; }
+
+  /* Grids */
+  .r-grid-3        { grid-template-columns: 1fr !important; }
+  .r-grid-4        { grid-template-columns: 1fr !important; }
+  .r-grid-features { grid-template-columns: 1fr !important; }
+  .r-stats         { grid-template-columns: repeat(2, 1fr) !important; }
+  .r-grid-footer   { grid-template-columns: 1fr !important; gap: 24px !important; }
+  .r-grid-2-faq    { grid-template-columns: 1fr !important; gap: 32px !important; }
+  .r-tech-grid     { grid-template-columns: 1fr !important; }
+
+  /* Steps — single column */
+  .r-steps {
+    grid-template-columns: 1fr !important;
+    border-radius: 12px !important;
+  }
+
+  /* Pipeline — vertical stack */
+  .r-pipeline {
+    flex-direction: column !important;
+    overflow-x: visible;
+  }
+  .r-pipeline-step > div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 18px 20px !important;
+  }
+  .pipeline-arrow { display: none !important; }
+
+  /* Global section padding override */
+  section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* Nav bar actions — hide theme toggle label */
+  .nav-actions-desktop { display: none; }
+
+  /* Stats border fix on mobile 2-col */
+  .r-stats > div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+  .r-stats > div:last-child { border-bottom: none; }
+
+  /* Powered-by strip: add horizontal scroll padding */
+  .powered-strip {
+    gap: 28px !important;
+    padding-left: 0;
+    padding-right: 20px;
+  }
+
+  /* CTA card padding */
+  .hero-section { padding: 80px 20px 60px !important; min-height: auto !important; }
+
+  /* Hero h1 */
+  .hero-section h1 { font-size: clamp(36px, 11vw, 56px) !important; }
+
+  /* Footer inner */
+  footer .inner { padding: 48px 20px 32px !important; }
+
+  /* Dashboard header */
+  .dash-header { flex-direction: column !important; align-items: flex-start !important; }
+
+  /* About header */
+  .about-cta { flex-direction: column !important; align-items: flex-start !important; }
+}
+
+/* ============================================================
+   SMALL MOBILE — max 480px
+   ============================================================ */
+@media (max-width: 480px) {
+  .r-stats { grid-template-columns: 1fr !important; }
+  .r-stats > div { border-bottom: 1px solid var(--border); border-right: none !important; }
+}

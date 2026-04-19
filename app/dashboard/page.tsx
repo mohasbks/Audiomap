@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
         {/* ── PAGE HEADER ── */}
         <section style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-alt)" }}>
-          <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "64px 48px 48px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "20px" }}>
+          <div className="dash-header" style={{ maxWidth: "1100px", margin: "0 auto", padding: "64px 48px 48px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "20px" }}>
             <div>
               <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "10px" }}>Workspace</p>
               <h1 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, letterSpacing: "-0.05em", marginBottom: "8px" }}>Saved Maps</h1>

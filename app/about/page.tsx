@@ -73,13 +73,14 @@ export default function AboutPage() {
         {/* ── PIPELINE DIAGRAM ── */}
         <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 48px" }}>
           <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "32px" }}>Request Pipeline</p>
-          <div style={{ display: "flex", alignItems: "center", gap: "0", border: "1px solid var(--border)", borderRadius: "14px", overflow: "hidden", background: "var(--surface)" }}>
+          <div className="r-pipeline" style={{ maxWidth: "900px", margin: "0 auto" }}>
             {pipeline.map((step, i) => (
-              <div key={i} style={{ flex: 1, display: "flex", alignItems: "center" }}>
+              <div key={i} className="r-pipeline-step">
                 <div style={{
-                  flex: 1, padding: "28px 20px", textAlign: "center",
+                  padding: "28px 20px", textAlign: "center",
                   borderRight: i < pipeline.length - 1 ? "1px solid var(--border)" : "none",
                   background: step.accent ? "rgba(74,123,189,0.06)" : "transparent",
+                  height: "100%",
                 }}>
                   <div style={{ fontSize: "13px", fontWeight: 700, color: step.accent ? "var(--accent)" : "var(--text)", marginBottom: "4px", letterSpacing: "-0.01em" }}>
                     {step.label}
@@ -87,11 +88,6 @@ export default function AboutPage() {
                   <div style={{ fontSize: "11px", color: "var(--muted)" }}>{step.sub}</div>
                   {step.accent && <div style={{ fontSize: "10px", color: "var(--accent)", marginTop: "4px", fontWeight: 600 }}>800+ tok/s</div>}
                 </div>
-                {i < pipeline.length - 1 && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--border-2)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, margin: "0 -8px", zIndex: 1 }}>
-                    <path d="M5 12h14m-7-7 7 7-7 7"/>
-                  </svg>
-                )}
               </div>
             ))}
           </div>
@@ -101,7 +97,7 @@ export default function AboutPage() {
         <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 48px 100px" }}>
           <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "32px" }}>Technology Stack</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(440px, 1fr))", gap: "1px", background: "var(--border)", border: "1px solid var(--border)", borderRadius: "14px", overflow: "hidden" }}>
+          <div className="r-tech-grid">
             {stack.map((tech) => (
               <div key={tech.name} style={{
                 background: "var(--surface)", padding: "28px 32px",
@@ -129,7 +125,7 @@ export default function AboutPage() {
 
         {/* ── GITHUB CTA ── */}
         <section style={{ borderTop: "1px solid var(--border)", background: "var(--bg-alt)" }}>
-          <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "64px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "24px" }}>
+          <div className="about-cta" style={{ maxWidth: "1100px", margin: "0 auto", padding: "64px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "24px" }}>
             <div>
               <h2 style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.03em", marginBottom: "6px" }}>Open source on GitHub</h2>
               <p style={{ fontSize: "14px", color: "var(--text-2)" }}>100% open source. Read the code, contribute, or fork it.</p>
