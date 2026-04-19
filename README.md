@@ -1,10 +1,11 @@
 <div align="center">
 
 ```
-   ___         ___  _  _  ___  ___  _  _   _   ___
-  / _ \ /\  /\|   \| |/ // _ \|  \/  || | / \ | _ \
- / /_\ \| |  | | |) | ' /| (_) | |\/| || |/ _ \|  _/
- \____/ |_|  |_|___/|_|\_\\___/|_|  |_||_/_/ \_|_|
+  ))) ──┐                    ┌── ○ Concept A
+  )))   ├──  A U D I O M A P ─── ○ Concept B
+  )))   │        (AI)        └── ○ Concept C
+  voice─┘                           |
+  note                           ○ ○ ○
 ```
 
 **Voice → Structured Mind Maps. Instantly.**
