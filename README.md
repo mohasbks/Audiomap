@@ -72,7 +72,7 @@ All AI calls are proxied through Next.js API routes. Your key never leaves the s
 
 ```bash
 # 1. Clone
-git clone https://github.com/mohasbks/Audiomap.git && cd Audiomap
+git clone https://github.com/Almotasembellahawwad/Audiomap.git && cd Audiomap
 
 # 2. Install
 npm install
@@ -90,7 +90,7 @@ Open **http://localhost:3000**, hit the mic, and speak.
 
 ## Deploy in one click
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mohasbks/Audiomap)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Almotasembellahawwad/Audiomap)
 
 > After deploying, go to **Project → Settings → Environment Variables** and add `GROQ_API_KEY`.
 
@@ -153,7 +153,7 @@ MIT. Fork it, ship it, sell it.
 ---
 
 <div align="center">
-  Built by <a href="https://github.com/mohasbks"><strong>Motasem Bellah</strong></a>
+  Built by <a href="https://github.com/Almotasembellahawwad"><strong>Motasem Bellah</strong></a>
   <br/>
   <sub>⭐ Star the repo if Audiomap saved you time</sub>
 </div>
