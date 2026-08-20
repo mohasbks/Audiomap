@@ -1,3 +1,5 @@
+![Audiomap — Voice to structured mind maps](docs/brand-cover.png)
+
 <div align="center">
 
 ```
