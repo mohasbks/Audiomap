@@ -1,4 +1,4 @@
-![Audiomap — Voice to structured mind maps](docs/brand-cover.png)
+![Audiomap product interface](docs/product-preview.png)
 
 <div align="center">
 
