@@ -36,10 +36,10 @@ export default function AudioRecorder({ onTranscript, onError, isProcessing }: A
         try {
           const res = await fetch("/api/transcribe", { method: "POST", body: formData });
           const data = await res.json();
-          if (data.error) throw new Error(data.error);
+          if (!res.ok || data.error) throw new Error(data.error || "Transcription failed");
           onTranscript(data.text);
         } catch (err) {
-          onError("Failed to transcribe. Try again.");
+          onError(err instanceof Error ? err.message : "Failed to transcribe. Try Text mode instead.");
           console.error(err);
         } finally {
           setState("idle");

@@ -12,7 +12,7 @@
 
 **Voice → Structured Mind Maps. Instantly.**
 
-*Speak a thought. LLaMA 3.3 70B on Groq LPU maps it in under 1 second.*
+*Speak or type a thought. GPT-OSS structures it, and a local fallback keeps text mapping available.*
 
 <br/>
 
@@ -22,8 +22,8 @@
 
 ![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=next.js&logoColor=white)
 ![Groq](https://img.shields.io/badge/Groq_LPU-F55036?style=flat-square)
-![LLaMA](https://img.shields.io/badge/LLaMA_3.3_70B-6e40c9?style=flat-square)
-![Whisper](https://img.shields.io/badge/Whisper_v3-10a37f?style=flat-square)
+![GPT-OSS](https://img.shields.io/badge/GPT--OSS_20B-6e40c9?style=flat-square)
+![Whisper](https://img.shields.io/badge/Whisper_v3_Turbo-10a37f?style=flat-square)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)
 
@@ -43,10 +43,10 @@ Built for learners, engineers, and anyone who thinks faster than they type.
 
 ```
 ┌─────────────┐    ┌───────────────┐    ┌────────────────────┐    ┌─────────────────────┐
-│ Voice / Text│───▶│ Whisper v3    │───▶│  LLaMA 3.3 70B     │───▶│  React Flow Canvas  │
+│ Voice / Text│───▶│ Whisper Turbo │───▶│ GPT-OSS / fallback  │───▶│  React Flow Canvas  │
 │  (any lang) │    │  Transcribe   │    │  Structure → Mermaid│    │  Drag · Zoom · Pan  │
 └─────────────┘    └───────────────┘    └────────────────────┘    └─────────────────────┘
-                         Groq LPU — 800+ tokens/sec — end-to-end < 1 second
+                         Groq live inference — deterministic local text fallback
 ```
 
 All AI calls are proxied through Next.js API routes. Your key never leaves the server.
@@ -102,8 +102,8 @@ Open **http://localhost:3000**, hit the mic, and speak.
 
 ```
 Frontend    Next.js 16 (App Router · Turbopack · Vanilla CSS)
-AI Model    Meta LLaMA 3.3 70B  via Groq LPU
-STT         OpenAI Whisper v3   via Groq
+AI Model    OpenAI GPT-OSS 20B  via Groq
+STT         Whisper Large v3 Turbo via Groq
 Canvas      @xyflow/react (React Flow)
 Persistence IndexedDB           via idb
 Hosting     Vercel
@@ -121,7 +121,7 @@ app/
 ├── pricing/page.tsx
 ├── about/page.tsx        ← Architecture
 └── api/
-    ├── generate-map/     ← LLaMA 3.3 → Mermaid
+    ├── generate-map/     ← GPT-OSS / local → Mermaid
     └── transcribe/       ← Whisper STT
 
 components/

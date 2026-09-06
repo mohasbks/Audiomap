@@ -47,15 +47,17 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 // ─── API call ──────────────────────────────────────────────────────────────
-async function generateMap(text: string): Promise<{ mermaid: string; resources: ResourceGroup[] }> {
+interface GenerationMeta { mode: "ai" | "local"; model: string; notice?: string }
+
+async function generateMap(text: string): Promise<{ mermaid: string; resources: ResourceGroup[]; meta: GenerationMeta }> {
   const res = await fetch("/api/generate-map", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return { mermaid: data.mermaid, resources: data.resources ?? [] };
+  if (!res.ok || data.error) throw new Error(data.error || "Map generation failed");
+  return { mermaid: data.mermaid, resources: data.resources ?? [], meta: data.meta };
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
@@ -75,6 +77,7 @@ function AppWorkspaceInner() {
   const [flowNodes, setFlowNodes] = useState<Node[]>([]);
   const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [generationMeta, setGenerationMeta] = useState<GenerationMeta | null>(null);
 
   const canvasDivRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +107,7 @@ function AppWorkspaceInner() {
     setErrorMsg("");
     setResources([]);
     setResourcesOpen(false);
+    setGenerationMeta(null);
     const projectId = currentProjectId || Date.now().toString();
     setCurrentProjectId(projectId);
 
@@ -111,6 +115,7 @@ function AppWorkspaceInner() {
       const result = await generateMap(text);
       setMermaidCode(result.mermaid);
       setResources(result.resources);
+      setGenerationMeta(result.meta);
       setHistory((prev) => [
         { id: projectId, transcript: text, mermaid: result.mermaid, resources: result.resources },
         ...prev.filter((i) => i.transcript !== text).slice(0, 9),
@@ -133,7 +138,7 @@ function AppWorkspaceInner() {
       setStep("done");
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to generate map. Try again.");
+      setErrorMsg(err instanceof Error ? err.message : "Failed to generate map. Try again.");
       setStep("error");
     }
   }, [currentProjectId]);
@@ -161,6 +166,7 @@ function AppWorkspaceInner() {
     setTextInput("");
     setCurrentProjectId("");
     setResourcesOpen(false);
+    setGenerationMeta(null);
   };
 
   // ─── Export functions ──────────────────────────────────────────────────
@@ -230,14 +236,6 @@ function AppWorkspaceInner() {
 
   const isProcessing = step === "generating";
   const hasMap = !!mermaidCode;
-
-  // Grouped export actions
-  const exportActions = [
-    { label: "PNG", icon: "🖼", action: handleExportPng },
-    { label: "SVG", icon: "✏️", action: handleExportSvg },
-    { label: "JSON", icon: "{ }", action: handleExportJson },
-    { label: "Markdown", icon: "📋", action: handleCopyMarkdown },
-  ];
 
   return (
     <div className="app-layout">
@@ -335,13 +333,16 @@ function AppWorkspaceInner() {
                 {step === "done" && transcript && (
                   <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <span style={{ color: "var(--accent)" }}>✓</span>
-                    "{transcript.length > 60 ? transcript.slice(0, 60) + "…" : transcript}"
+                    &quot;{transcript.length > 60 ? transcript.slice(0, 60) + "…" : transcript}&quot;
                     {savedMsg && (
                       <span style={{ marginLeft: "auto", color: "var(--accent)", fontWeight: 600, fontSize: "11px" }}>
                         {savedMsg}
                       </span>
                     )}
                   </span>
+                )}
+                {step === "done" && generationMeta?.notice && (
+                  <span style={{ display: "block", marginTop: "8px", color: "#d4a853" }}>{generationMeta.notice}</span>
                 )}
                 {step === "error" && <span>⚠ {errorMsg}</span>}
               </div>
@@ -433,11 +434,10 @@ function AppWorkspaceInner() {
             <div style={{ width: "1px", height: "20px", background: "var(--border)" }} />
 
             {/* Export group */}
-            {exportActions.map((a) => (
-              <ToolbarBtn key={a.label} onClick={a.action}>
-                {a.icon} {a.label}
-              </ToolbarBtn>
-            ))}
+            <ToolbarBtn onClick={handleExportPng}>PNG</ToolbarBtn>
+            <ToolbarBtn onClick={handleExportSvg}>SVG</ToolbarBtn>
+            <ToolbarBtn onClick={handleExportJson}>{'{ }'} JSON</ToolbarBtn>
+            <ToolbarBtn onClick={handleCopyMarkdown}>Markdown</ToolbarBtn>
 
             {/* Resources toggle */}
             {resources.length > 0 && (

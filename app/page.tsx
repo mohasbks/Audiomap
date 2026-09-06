@@ -17,7 +17,7 @@ export function SiteNavbar() {
     { href: "/pricing",   label: "Pricing"      },
     { href: "/about",     label: "Architecture" },
     { href: "/dashboard", label: "Dashboard"    },
-    { href: "https://github.com/mohasbks/Audiomap", label: "GitHub", ext: true },
+    { href: "https://github.com/Almotasembellahawwad/Audiomap", label: "GitHub", ext: true },
   ];
 
   const lk = (active: boolean): React.CSSProperties => ({
@@ -114,13 +114,13 @@ export function SiteFooter() {
             <span style={{ fontWeight: 700, color: "var(--text)", fontSize: "14px", letterSpacing: "-0.02em" }}>audiomap</span>
           </div>
           <p style={{ color: "var(--muted)", fontSize: "13px", lineHeight: 1.75, maxWidth: "220px" }}>
-            Voice-to-mindmap AI. Built on Groq LPU, LLaMA 3.3, and React Flow.
+            Voice-to-mindmap AI. Built on Groq, GPT-OSS, Whisper, and React Flow.
           </p>
         </div>
         {[
           { title: "Product", links: [{ label: "App Workspace", href: "/app" }, { label: "Pricing", href: "/pricing" }, { label: "Dashboard", href: "/dashboard" }] },
-          { title: "Company", links: [{ label: "Architecture", href: "/about" }, { label: "GitHub", href: "https://github.com/mohasbks/Audiomap" }, { label: "Groq API", href: "https://groq.com" }] },
-          { title: "Developer", links: [{ label: "@mohasbks", href: "https://github.com/mohasbks" }, { label: "React Flow", href: "https://reactflow.dev" }, { label: "Next.js", href: "https://nextjs.org" }] },
+          { title: "Company", links: [{ label: "Architecture", href: "/about" }, { label: "GitHub", href: "https://github.com/Almotasembellahawwad/Audiomap" }, { label: "Groq API", href: "https://groq.com" }] },
+          { title: "Developer", links: [{ label: "@Almotasembellahawwad", href: "https://github.com/Almotasembellahawwad" }, { label: "React Flow", href: "https://reactflow.dev" }, { label: "Next.js", href: "https://nextjs.org" }] },
         ].map(col => (
           <div key={col.title}>
             <div style={head}>{col.title}</div>
@@ -199,7 +199,7 @@ export default function LandingPage() {
 
             <div className="badge" style={{ marginBottom: "32px", display: "inline-flex" }}>
               <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e", flexShrink: 0 }} />
-              Live · Groq LPU · &lt;1s generation
+              Live AI · resilient local fallback
             </div>
 
             <h1 style={{ fontSize: "clamp(38px, 7vw, 84px)", fontWeight: 700, letterSpacing: "-0.055em", lineHeight: 1.0, marginBottom: "24px", color: "var(--text)" }}>
@@ -252,8 +252,8 @@ export default function LandingPage() {
             </span>
             {[
               { name: "Groq",      sub: "LPU Inference"  },
-              { name: "Meta AI",   sub: "LLaMA 3.3 70B"  },
-              { name: "OpenAI",    sub: "Whisper v3"      },
+              { name: "OpenAI",    sub: "GPT-OSS 20B"     },
+              { name: "Whisper",   sub: "Large v3 Turbo"  },
               { name: "Next.js",   sub: "App Router"      },
               { name: "React Flow",sub: "Canvas"          },
               { name: "IndexedDB", sub: "Persistence"     },
@@ -276,8 +276,8 @@ export default function LandingPage() {
 
           <div className="r-steps">
             {[
-              { n: "01", title: "Speak or Type",    body: "Record your voice in any language or type your idea. Whisper v3 handles transcription with near-human accuracy.", icon: <IcMic /> },
-              { n: "02", title: "AI Structures It", body: "LLaMA 3.3 70B running on Groq LPU analyzes your input and builds a structured concept hierarchy in under a second.", icon: <IcZap /> },
+              { n: "01", title: "Speak or Type",    body: "Record your voice in Arabic or English, or type an idea. Whisper Large v3 Turbo handles fast multilingual transcription.", icon: <IcMic /> },
+              { n: "02", title: "AI Structures It", body: "GPT-OSS on Groq builds a useful concept hierarchy. A transparent local structurer keeps text mode available during provider outages.", icon: <IcZap /> },
               { n: "03", title: "Explore & Export", body: "Drag nodes, zoom in, add connections. Export as PNG, SVG, JSON, or Markdown for Notion and GitHub.", icon: <IcFlow /> },
             ].map(step => (
               <div key={step.n} style={{ background: "var(--surface)", padding: "44px 36px", display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -298,9 +298,9 @@ export default function LandingPage() {
         <section style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "var(--bg-alt)" }}>
           <div className="r-stats" style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 48px" }}>
             {[
-              { value: "800+", label: "Tokens / second", sub: "via Groq LPU"   },
-              { value: "<1s",  label: "Map generation",  sub: "end to end"      },
-              { value: "70B",  label: "Model parameters",sub: "LLaMA 3.3"       },
+              { value: "24/7", label: "Text availability", sub: "with local fallback" },
+              { value: "2",  label: "Input modes",  sub: "voice and text"      },
+              { value: "20B",  label: "Default AI model",sub: "GPT-OSS"          },
               { value: "4",    label: "Export formats",  sub: "PNG · SVG · JSON · MD" },
             ].map((s, i) => (
               <div key={i} style={{ padding: "32px 24px", borderRight: i < 3 ? "1px solid var(--border)" : "none" }}>
@@ -327,8 +327,8 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="r-grid-features">
-            <FeatureCard icon={<IcMic />}    title="Voice First"         body="Arabic or English — Whisper v3 on Groq handles transcription with sub-second accuracy." />
-            <FeatureCard icon={<IcZap />}    title="Groq-Speed AI"       body="LLaMA 3.3 70B at 800+ tok/s. Your map is ready before you finish reading this sentence." />
+            <FeatureCard icon={<IcMic />}    title="Voice First"         body="Arabic and English transcription powered by Whisper Large v3 Turbo on Groq." />
+            <FeatureCard icon={<IcZap />}    title="Resilient AI"        body="GPT-OSS structures rich maps, while a labeled local fallback keeps text ideas moving." />
             <FeatureCard icon={<IcFlow />}   title="React Flow Canvas"   body="Drag, rearrange, and zoom nodes freely. Every map is interactive — not a static image." />
             <FeatureCard icon={<IcBook />}   title="Curated Resources"   body="AI surfaces relevant courses, docs, and references for your topic automatically." />
             <FeatureCard icon={<IcExport />} title="Pro Export"          body="PNG · SVG · JSON · Markdown. High-res, ready for slides, Notion, and GitHub READMEs." />

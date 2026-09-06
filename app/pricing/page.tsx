@@ -39,7 +39,7 @@ const plans = [
     features: [
       "Everything in Hobby",
       "Unlimited voice mapping",
-      "LLaMA 3.3 70B full context",
+      "GPT-OSS structured mapping",
       "Unlimited save history",
       "Cloud sync across devices",
       "JSON & Markdown export",
@@ -55,7 +55,7 @@ const faqs = [
   },
   {
     q: "What's the difference between voice and text mode?",
-    a: "Text mode sends your prompt directly to LLaMA. Voice mode adds a Whisper transcription step first. Both produce the same quality output — voice just saves you from typing.",
+    a: "Text mode sends your prompt to the map engine. Voice mode adds a Whisper transcription step first. If live structuring is unavailable, text mode uses a clearly labeled local fallback.",
   },
   {
     q: "Where are my maps stored?",
@@ -186,7 +186,7 @@ export default function PricingPage() {
                 <h2 style={{ fontSize: "28px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.2, marginBottom: "14px" }}>Common questions</h2>
                 <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7 }}>
                   Can&apos;t find the answer? Ask on{" "}
-                  <a href="https://github.com/mohasbks/Audiomap" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text)", textDecoration: "underline", textDecorationColor: "var(--border-2)" }}>
+                  <a href="https://github.com/Almotasembellahawwad/Audiomap" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text)", textDecoration: "underline", textDecorationColor: "var(--border-2)" }}>
                     GitHub
                   </a>.
                 </p>

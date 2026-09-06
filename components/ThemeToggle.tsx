@@ -3,16 +3,14 @@
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [mounted, setMounted] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof window === "undefined") return "dark";
+    return (localStorage.getItem("audiomap-theme") as "dark" | "light") ?? "dark";
+  });
 
   useEffect(() => {
-    setMounted(true);
-    const saved =
-      (localStorage.getItem("audiomap-theme") as "dark" | "light") ?? "dark";
-    setTheme(saved);
-    document.documentElement.setAttribute("data-theme", saved);
-  }, []);
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   const toggle = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -21,10 +19,9 @@ export function ThemeToggle() {
     document.documentElement.setAttribute("data-theme", next);
   };
 
-  if (!mounted) return <div style={{ width: 36, height: 36 }} />;
-
   return (
     <button
+      suppressHydrationWarning
       onClick={toggle}
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
       aria-label="Toggle theme"

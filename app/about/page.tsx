@@ -1,24 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { SiteNavbar, SiteFooter } from "@/app/page";
 
 const stack = [
   {
     icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
     name: "Groq LPU Inference",
-    badge: "800+ tok/s",
-    desc: "Groq's Language Processing Unit delivers sub-second LLM inference — making Audiomap feel instant rather than waiting on a remote API.",
+    badge: "Low latency",
+    desc: "Groq's inference platform powers live structuring, while Audiomap keeps a local text fallback ready when the remote service is unavailable.",
   },
   {
     icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>,
-    name: "OpenAI Whisper v3",
+    name: "Whisper Large v3 Turbo",
     badge: "Multilingual",
     desc: "Best-in-class automatic speech recognition. Handles Arabic, English, and mixed input with near-human accuracy on Groq's infrastructure.",
   },
   {
     icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
-    name: "LLaMA 3.3 70B",
+    name: "OpenAI GPT-OSS 20B",
     badge: "Meta AI",
     desc: "70-billion parameter open-weights model. Understands complex conceptual relationships and produces structured Mermaid.js mindmap syntax reliably.",
   },
@@ -44,8 +43,8 @@ const stack = [
 
 const pipeline = [
   { label: "Voice / Text", sub: "User input" },
-  { label: "Whisper v3", sub: "Transcription" },
-  { label: "LLaMA 3.3", sub: "Structuring", accent: true },
+  { label: "Whisper Turbo", sub: "Transcription" },
+  { label: "GPT-OSS 20B", sub: "Structuring", accent: true },
   { label: "Mermaid Parser", sub: "Conversion" },
   { label: "React Flow", sub: "Rendering" },
 ];
@@ -65,7 +64,7 @@ export default function AboutPage() {
               Built for speed.<br />Designed for thought.
             </h1>
             <p style={{ fontSize: "16px", color: "var(--text-2)", lineHeight: 1.75, maxWidth: "540px" }}>
-              Audiomap chains Whisper, LLaMA 3.3, and Groq&apos;s inference engine to produce mind maps that feel instantaneous — typically under one second end-to-end.
+              Audiomap combines Whisper transcription, GPT-OSS reasoning, and Groq inference with a deterministic local fallback, so typed ideas remain usable even when a provider is unavailable.
             </p>
           </div>
         </section>
@@ -86,7 +85,7 @@ export default function AboutPage() {
                     {step.label}
                   </div>
                   <div style={{ fontSize: "11px", color: "var(--muted)" }}>{step.sub}</div>
-                  {step.accent && <div style={{ fontSize: "10px", color: "var(--accent)", marginTop: "4px", fontWeight: 600 }}>800+ tok/s</div>}
+                  {step.accent && <div style={{ fontSize: "10px", color: "var(--accent)", marginTop: "4px", fontWeight: 600 }}>Structured output</div>}
                 </div>
               </div>
             ))}
@@ -130,7 +129,7 @@ export default function AboutPage() {
               <h2 style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.03em", marginBottom: "6px" }}>Open source on GitHub</h2>
               <p style={{ fontSize: "14px", color: "var(--text-2)" }}>100% open source. Read the code, contribute, or fork it.</p>
             </div>
-            <a href="https://github.com/mohasbks/Audiomap" target="_blank" rel="noopener noreferrer" style={{
+            <a href="https://github.com/Almotasembellahawwad/Audiomap" target="_blank" rel="noopener noreferrer" style={{
               display: "inline-flex", alignItems: "center", gap: "10px",
               padding: "12px 24px", background: "var(--surface)", border: "1px solid var(--border-2)",
               borderRadius: "10px", color: "var(--text)", textDecoration: "none",
@@ -139,7 +138,7 @@ export default function AboutPage() {
               onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--text)")}
               onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-2)")}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
-              mohasbks / Audiomap
+              Almotasembellahawwad / Audiomap
             </a>
           </div>
         </section>
