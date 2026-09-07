@@ -2,7 +2,9 @@ export const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 export const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b';
 
 export function currentGroqModel() {
-  return process.env.GROQ_CHAT_MODEL?.trim() || DEFAULT_GROQ_MODEL;
+  const configured = process.env.GROQ_CHAT_MODEL?.trim();
+  if (!configured || configured === 'openai/gpt-oss-20') return DEFAULT_GROQ_MODEL;
+  return configured;
 }
 
 export class GroqRequestError extends Error {
