@@ -17,7 +17,14 @@ export async function POST(req: NextRequest) {
     try {
       const response = await fetch(GROQ_ENDPOINT, {
         method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: text }], temperature: 0.2, max_completion_tokens: 2400, response_format: { type: 'json_object' } }),
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: `${SYSTEM_PROMPT}\n\nUser input:\n${text}` }],
+          include_reasoning: false,
+          reasoning_effort: 'low',
+          max_completion_tokens: 2400,
+          response_format: { type: 'json_object' },
+        }),
         signal: AbortSignal.timeout(25_000), cache: 'no-store',
       });
       if (!response.ok) throw new GroqRequestError(response.status, (await response.text()).slice(0, 250));
