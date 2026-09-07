@@ -1,6 +1,6 @@
 export type ResourceLink = { title: string; url: string; type: 'course' | 'doc' | 'video' | 'article' };
 export type ResourceGroup = { topic: string; links: ResourceLink[] };
-export type MapResult = { mermaid: string; resources: ResourceGroup[]; meta: { mode: 'ai' | 'local'; model: string; notice?: string } };
+export type MapResult = { mermaid: string; resources: ResourceGroup[]; meta: { mode: 'ai' | 'local'; model: string; notice?: string; reason?: string; providerStatus?: number } };
 
 function cleanLabel(value: string, fallback: string) {
   const cleaned = value.replace(/[\r\n\t]+/g, ' ').replace(/[()[\]{}"`]/g, '').replace(/\s+/g, ' ').trim();
@@ -11,7 +11,7 @@ function chunks(text: string) {
   return text.split(/(?:[.!?؛،]\s+|\n+|;\s*)/).map((item) => cleanLabel(item, '')).filter((item) => item.length > 2);
 }
 
-export function createLocalMap(text: string, notice: string): MapResult {
+export function createLocalMap(text: string, notice: string, diagnostic: { reason?: string; providerStatus?: number } = {}): MapResult {
   const ideas = chunks(text);
   const root = cleanLabel(ideas[0] || text, 'New Idea');
   const branches = ideas.length > 1 ? ideas.slice(0, 5) : ['Foundations', 'Core Concepts', 'Applications', 'Next Steps'];
@@ -34,7 +34,7 @@ export function createLocalMap(text: string, notice: string): MapResult {
       { title: 'Wikipedia — topic overview', url: `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(root)}`, type: 'article' },
       { title: 'MIT OpenCourseWare — related courses', url: `https://ocw.mit.edu/search/?q=${encodeURIComponent(root)}`, type: 'course' },
     ] }],
-    meta: { mode: 'local', model: 'Audiomap local structurer', notice },
+    meta: { mode: 'local', model: 'Audiomap local structurer', notice, ...diagnostic },
   };
 }
 
