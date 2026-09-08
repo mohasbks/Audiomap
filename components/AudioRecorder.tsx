@@ -1,127 +1,64 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-interface AudioRecorderProps {
-  onTranscript: (text: string) => void;
-  onError: (msg: string) => void;
-  isProcessing: boolean;
-}
-
+interface AudioRecorderProps { onTranscript: (text: string) => void; onError: (msg: string) => void; isProcessing: boolean }
 type RecordingState = "idle" | "recording" | "uploading";
 
 export default function AudioRecorder({ onTranscript, onError, isProcessing }: AudioRecorderProps) {
   const [state, setState] = useState<RecordingState>("idle");
+  const [elapsed, setElapsed] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      mediaRecorderRef.current = mediaRecorder;
+      const preferredType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+      const recorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
       chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
+      recorder.ondataavailable = (event) => { if (event.data.size > 0) chunksRef.current.push(event.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
         setState("uploading");
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
         const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.webm");
-
+        formData.append("audio", new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" }), "recording.webm");
         try {
-          const res = await fetch("/api/transcribe", { method: "POST", body: formData });
-          const data = await res.json();
-          if (!res.ok || data.error) throw new Error(data.error || "Transcription failed");
+          const response = await fetch("/api/transcribe", { method: "POST", body: formData });
+          const data = await response.json();
+          if (!response.ok || data.error) throw new Error(data.error || "Transcription failed");
           onTranscript(data.text);
-        } catch (err) {
-          onError(err instanceof Error ? err.message : "Failed to transcribe. Try Text mode instead.");
-          console.error(err);
-        } finally {
-          setState("idle");
-        }
+        } catch (error) {
+          onError(error instanceof Error ? error.message : "Failed to transcribe. Try text input instead.");
+        } finally { setState("idle"); }
       };
-
-      mediaRecorder.start();
+      recorder.start();
+      setElapsed(0);
       setState("recording");
-    } catch {
-      onError("Microphone access denied. Please allow microphone access.");
-    }
-  }, [onTranscript, onError]);
-
-  const stopRecording = useCallback(() => {
-    mediaRecorderRef.current?.stop();
-  }, []);
+    } catch { onError("Microphone access was denied. Allow access or use text input instead."); }
+  }, [onError, onTranscript]);
 
   const isRecording = state === "recording";
   const isUploading = state === "uploading";
+  useEffect(() => {
+    if (!isRecording) return;
+    const timer = window.setInterval(() => setElapsed((seconds) => seconds + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [isRecording]);
+
+  const elapsedLabel = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
   const disabled = isProcessing || isUploading;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
-      {/* Mic Button */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {/* Pulse ring — only visible when recording */}
-        {isRecording && (
-          <span
-            className="pulse-ring"
-            style={{
-              position: "absolute",
-              width: "80px",
-              height: "80px",
-              borderRadius: "50%",
-              border: "1px solid var(--accent)",
-              pointerEvents: "none",
-            }}
-          />
-        )}
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={disabled}
-          style={{
-            width: "64px",
-            height: "64px",
-            borderRadius: "50%",
-            border: isRecording ? "1px solid var(--accent)" : "1px solid var(--border)",
-            background: isRecording ? "rgba(74, 111, 165, 0.12)" : "var(--surface)",
-            cursor: disabled ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s ease",
-            opacity: disabled ? 0.5 : 1,
-          }}
-          aria-label={isRecording ? "Stop Recording" : "Start Recording"}
-        >
-          {isRecording ? (
-            /* Stop icon */
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--accent)">
-              <rect x="6" y="6" width="12" height="12" rx="2" />
-            </svg>
-          ) : (
-            /* Mic icon */
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="23" />
-              <line x1="8" y1="23" x2="16" y2="23" />
-            </svg>
-          )}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "13px", padding: "8px 0 2px" }}>
+      <div style={{ position: "relative", display: "grid", placeItems: "center" }}>
+        {isRecording ? <span className="pulse-ring" aria-hidden="true" style={{ position: "absolute", width: 76, height: 76, borderRadius: "50%", border: "1px solid var(--accent)", pointerEvents: "none" }} /> : null}
+        <button onClick={isRecording ? () => mediaRecorderRef.current?.stop() : startRecording} disabled={disabled} style={{ width: 64, height: 64, borderRadius: "50%", border: `1px solid ${isRecording ? "var(--accent)" : "var(--border-2)"}`, background: isRecording ? "var(--accent-dim)" : "var(--surface)", color: "var(--accent)", display: "grid", placeItems: "center", cursor: disabled ? "not-allowed" : "pointer" }} aria-label={isRecording ? "Stop recording" : "Start recording"}>
+          {isRecording ? <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" /></svg> : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>}
         </button>
       </div>
-
-      {/* Status label */}
-      <p style={{ fontSize: "13px", color: "var(--muted)", letterSpacing: "0.02em" }}>
-        {isUploading || isProcessing
-          ? "Processing..."
-          : isRecording
-          ? "Recording — click to stop"
-          : "Click to start recording"}
-      </p>
+      <p role="status" aria-live="polite" style={{ fontSize: 11, color: isRecording ? "var(--text)" : "var(--muted)" }}>{isUploading || isProcessing ? "Transcribing recording…" : isRecording ? `Recording ${elapsedLabel} · tap to stop` : "Tap to start recording"}</p>
     </div>
   );
 }

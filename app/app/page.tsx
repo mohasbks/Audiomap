@@ -1,70 +1,44 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, Suspense } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import type { Edge, Node } from "@xyflow/react";
 import AudioRecorder from "@/components/AudioRecorder";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { flowToMarkdown } from "@/lib/mermaid-to-flow";
-import { saveProject, getProject } from "@/lib/storage";
-import type { Node, Edge } from "@xyflow/react";
+import { getProject, getProjects, saveProject } from "@/lib/storage";
 
 const FlowCanvas = dynamic(() => import("@/components/FlowCanvas"), {
   ssr: false,
-  loading: () => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "13px" }}>
-      Loading canvas...
-    </div>
-  ),
+  loading: () => <div className="canvas-loading" role="status">Preparing the interactive canvas…</div>,
 });
 
-// ─── Types ─────────────────────────────────────────────────────────────────
 type Step = "idle" | "generating" | "done" | "error";
-type InputMode = "voice" | "text";
-
-interface ResourceLink {
-  title: string;
-  url: string;
-  type: "course" | "doc" | "video" | "article";
-}
-interface ResourceGroup {
-  topic: string;
-  links: ResourceLink[];
-}
-interface HistoryItem {
-  id: string;
-  transcript: string;
-  mermaid: string;
-  resources: ResourceGroup[];
-}
-
-const TYPE_ICONS: Record<string, string> = {
-  course: "🎓",
-  doc: "📄",
-  video: "▶️",
-  article: "📝",
-};
-
-// ─── API call ──────────────────────────────────────────────────────────────
+type InputMode = "text" | "voice";
+interface ResourceLink { title: string; url: string; type: "course" | "doc" | "video" | "article" }
+interface ResourceGroup { topic: string; links: ResourceLink[] }
+interface HistoryItem { id: string; transcript: string; mermaid: string; resources: ResourceGroup[] }
 interface GenerationMeta { mode: "ai" | "local"; model: string; notice?: string }
 
+const EXAMPLES = [
+  { label: "Product plan", text: "Map a launch plan for a subscription productivity app, from research to public release." },
+  { label: "Study topic", text: "Explain machine learning as a study map with foundations, model types, evaluation, and practical projects." },
+  { label: "Content system", text: "Design a content system for a personal brand across LinkedIn, Instagram, and a weekly newsletter." },
+];
+
 async function generateMap(text: string): Promise<{ mermaid: string; resources: ResourceGroup[]; meta: GenerationMeta }> {
-  const res = await fetch("/api/generate-map", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || "Map generation failed");
+  const response = await fetch("/api/generate-map", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+  const data = await response.json();
+  if (!response.ok || data.error) throw new Error(data.error || "Map generation failed");
   return { mermaid: data.mermaid, resources: data.resources ?? [], meta: data.meta };
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────
 function AppWorkspaceInner() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("idle");
-  const [inputMode, setInputMode] = useState<InputMode>("voice");
+  const [inputMode, setInputMode] = useState<InputMode>("text");
   const [transcript, setTranscript] = useState("");
   const [textInput, setTextInput] = useState("");
   const [mermaidCode, setMermaidCode] = useState("");
@@ -73,36 +47,47 @@ function AppWorkspaceInner() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [copied, setCopied] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
-  const [currentProjectId, setCurrentProjectId] = useState<string>("");
+  const [currentProjectId, setCurrentProjectId] = useState("");
   const [flowNodes, setFlowNodes] = useState<Node[]>([]);
   const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [generationMeta, setGenerationMeta] = useState<GenerationMeta | null>(null);
-
+  const [generationStage, setGenerationStage] = useState(0);
   const canvasDivRef = useRef<HTMLDivElement>(null);
 
-  // Load project from URL ?id=
+  useEffect(() => {
+    getProjects().then((projects) => setHistory(projects.slice(0, 10).map((project) => ({ id: project.id, transcript: project.transcript, mermaid: project.mermaid, resources: project.resources as ResourceGroup[] }))));
+  }, []);
+
   useEffect(() => {
     const id = searchParams.get("id");
     if (!id) return;
-    getProject(id).then((p) => {
-      if (!p) return;
-      setMermaidCode(p.mermaid);
-      setTranscript(p.transcript);
-      setResources(p.resources as ResourceGroup[]);
-      setCurrentProjectId(p.id);
+    getProject(id).then((project) => {
+      if (!project) return;
+      setMermaidCode(project.mermaid);
+      setTranscript(project.transcript);
+      setTextInput(project.transcript);
+      setResources(project.resources as ResourceGroup[]);
+      setCurrentProjectId(project.id);
       setStep("done");
     });
   }, [searchParams]);
 
-  // ─── Handlers ─────────────────────────────────────────────────────────
-  const handleFlowStateChange = useCallback((nodes: Node[], edges: Edge[]) => {
-    setFlowNodes(nodes);
-    setFlowEdges(edges);
-  }, []);
+  useEffect(() => {
+    if (step !== "generating") return;
+    const timer = window.setInterval(() => setGenerationStage((stage) => Math.min(stage + 1, 2)), 1500);
+    return () => window.clearInterval(timer);
+  }, [step]);
+
+  const handleFlowStateChange = useCallback((nodes: Node[], edges: Edge[]) => { setFlowNodes(nodes); setFlowEdges(edges); }, []);
 
   const processText = useCallback(async (text: string) => {
-    setTranscript(text);
+    const cleaned = text.trim();
+    if (!cleaned) return;
+    setTranscript(cleaned);
+    setTextInput(cleaned);
+    setGenerationStage(0);
     setStep("generating");
     setErrorMsg("");
     setResources([]);
@@ -110,451 +95,125 @@ function AppWorkspaceInner() {
     setGenerationMeta(null);
     const projectId = currentProjectId || Date.now().toString();
     setCurrentProjectId(projectId);
-
     try {
-      const result = await generateMap(text);
+      const result = await generateMap(cleaned);
       setMermaidCode(result.mermaid);
       setResources(result.resources);
       setGenerationMeta(result.meta);
-      setHistory((prev) => [
-        { id: projectId, transcript: text, mermaid: result.mermaid, resources: result.resources },
-        ...prev.filter((i) => i.transcript !== text).slice(0, 9),
-      ]);
-
-      // Auto-save to IndexedDB
-      const name = text.length > 40 ? text.slice(0, 40) + "…" : text;
-      await saveProject({
-        id: projectId,
-        name,
-        transcript: text,
-        mermaid: result.mermaid,
-        nodes: [],
-        edges: [],
-        resources: result.resources,
-      });
-
-      setSavedMsg("Saved!");
+      setHistory((previous) => [{ id: projectId, transcript: cleaned, mermaid: result.mermaid, resources: result.resources }, ...previous.filter((item) => item.id !== projectId)].slice(0, 10));
+      const name = cleaned.length > 48 ? `${cleaned.slice(0, 48)}…` : cleaned;
+      await saveProject({ id: projectId, name, transcript: cleaned, mermaid: result.mermaid, nodes: [], edges: [], resources: result.resources });
+      setSavedMsg("Saved locally");
       setTimeout(() => setSavedMsg(""), 2500);
       setStep("done");
-    } catch (err) {
-      console.error(err);
-      setErrorMsg(err instanceof Error ? err.message : "Failed to generate map. Try again.");
+    } catch (error) {
+      console.error(error);
+      setErrorMsg(error instanceof Error ? error.message : "Failed to generate map. Try again.");
       setStep("error");
     }
   }, [currentProjectId]);
 
-  const handleTextSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!textInput.trim()) return;
-      await processText(textInput.trim());
-    },
-    [textInput, processText]
-  );
-
-  const handleError = useCallback((msg: string) => {
-    setErrorMsg(msg);
-    setStep("error");
-  }, []);
-
   const reset = () => {
-    setStep("idle");
-    setTranscript("");
-    setMermaidCode("");
-    setResources([]);
-    setErrorMsg("");
-    setTextInput("");
-    setCurrentProjectId("");
-    setResourcesOpen(false);
-    setGenerationMeta(null);
+    setStep("idle"); setTranscript(""); setTextInput(""); setMermaidCode(""); setResources([]); setErrorMsg(""); setCurrentProjectId(""); setResourcesOpen(false); setGenerationMeta(null); setExportOpen(false);
   };
 
-  // ─── Export functions ──────────────────────────────────────────────────
-  const handleCopyCode = async () => {
-    await navigator.clipboard.writeText(mermaidCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleExportPng = async () => {
-    if (!canvasDivRef.current) return;
-    try {
-      const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(canvasDivRef.current, {
-        backgroundColor: "#0a0b0e",
-        pixelRatio: 2,
-      });
-      const link = document.createElement("a");
-      link.download = "audiomap.png";
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error("PNG export failed:", err);
-    }
-  };
-
-  const handleExportSvg = async () => {
-    if (!canvasDivRef.current) return;
-    try {
-      const { toSvg } = await import("html-to-image");
-      const dataUrl = await toSvg(canvasDivRef.current, {
-        backgroundColor: "#0a0b0e",
-      });
-      const link = document.createElement("a");
-      link.download = "audiomap.svg";
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error("SVG export failed:", err);
-    }
-  };
-
+  const handleCopyCode = async () => { await navigator.clipboard.writeText(mermaidCode); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const downloadDataUrl = (url: string, filename: string) => { const link = document.createElement("a"); link.download = filename; link.href = url; link.click(); };
+  const handleExportPng = async () => { if (canvasDivRef.current) { const { toPng } = await import("html-to-image"); downloadDataUrl(await toPng(canvasDivRef.current, { backgroundColor: "#0a0b0e", pixelRatio: 2 }), "audiomap.png"); } };
+  const handleExportSvg = async () => { if (canvasDivRef.current) { const { toSvg } = await import("html-to-image"); downloadDataUrl(await toSvg(canvasDivRef.current, { backgroundColor: "#0a0b0e" }), "audiomap.svg"); } };
   const handleExportJson = () => {
-    const data = {
-      transcript,
-      mermaid: mermaidCode,
-      nodes: flowNodes,
-      edges: flowEdges,
-      resources,
-      exportedAt: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = "audiomap.json";
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
+    const blob = new Blob([JSON.stringify({ transcript, mermaid: mermaidCode, nodes: flowNodes, edges: flowEdges, resources, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob); downloadDataUrl(url, "audiomap.json"); URL.revokeObjectURL(url);
   };
-
-  const handleCopyMarkdown = async () => {
-    const md = flowToMarkdown(flowNodes, flowEdges);
-    await navigator.clipboard.writeText(md);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handleCopyMarkdown = async () => { await navigator.clipboard.writeText(flowToMarkdown(flowNodes, flowEdges)); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
   const isProcessing = step === "generating";
-  const hasMap = !!mermaidCode;
+  const hasMap = Boolean(mermaidCode);
+  const stageLabels = ["Reading your input", "Structuring branches", "Laying out the map"];
 
   return (
     <div className="app-layout">
+      <aside className="app-sidebar" aria-label="Map input and recent projects">
+        <header className="workspace-brand">
+          <Link href="/" className="workspace-logo"><span aria-hidden="true" />audiomap</Link>
+          <div className="workspace-brand-actions"><ThemeToggle /><Link href="/dashboard" className="square-action" aria-label="Open saved maps" title="Saved maps"><GridIcon /></Link></div>
+        </header>
 
-      {/* ─── LEFT SIDEBAR ─── */}
-      <aside className="app-sidebar">
-
-        {/* Header */}
-        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "9px", fontWeight: 700, fontSize: "15px", color: "var(--text)", textDecoration: "none" }}>
-            <div style={{ width: "20px", height: "20px", borderRadius: "5px", background: "linear-gradient(135deg, var(--accent) 0%, #3b5b7d 100%)" }} />
-            audiomap
-          </Link>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <ThemeToggle />
-            <Link href="/dashboard" title="My Maps" style={{
-              width: "36px", height: "36px", borderRadius: "8px",
-              border: "1px solid var(--border-2)", display: "flex", alignItems: "center", justifyContent: "center",
-              color: "var(--text-2)", textDecoration: "none", transition: "all 0.2s",
-            }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-2)"; }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
-            </Link>
-          </div>
-        </div>
-
-        {/* Scrollable Body */}
-        <div style={{ padding: "20px", flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "20px" }}>
-
-          {/* Input Mode Toggle */}
-          <div>
-            <div style={{ display: "flex", padding: "3px", background: "rgba(0,0,0,0.15)", borderRadius: "8px", marginBottom: "14px", border: "1px solid var(--border)" }}>
-              {(["voice", "text"] as InputMode[]).map((mode) => (
-                <button key={mode} onClick={() => setInputMode(mode)} style={{
-                  flex: 1, padding: "8px", background: inputMode === mode ? "var(--bg)" : "transparent",
-                  border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600,
-                  color: inputMode === mode ? "var(--text)" : "var(--muted)",
-                  boxShadow: inputMode === mode ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
-                  cursor: "pointer", transition: "all 0.15s",
-                }}>
-                  {mode === "voice" ? "🎙 Voice" : "✍️ Text"}
-                </button>
-              ))}
+        <div className="workspace-sidebar-body">
+          <section aria-labelledby="create-map-title">
+            <div className="section-kicker"><span>01</span><h1 id="create-map-title">Turn an idea into structure</h1></div>
+            <div className="input-tabs" role="tablist" aria-label="Input method">
+              <button role="tab" aria-selected={inputMode === "text"} className={inputMode === "text" ? "is-active" : ""} onClick={() => setInputMode("text")}>Text</button>
+              <button role="tab" aria-selected={inputMode === "voice"} className={inputMode === "voice" ? "is-active" : ""} onClick={() => setInputMode("voice")}>Voice</button>
             </div>
 
-            {inputMode === "voice" ? (
-              <AudioRecorder onTranscript={processText} onError={handleError} isProcessing={isProcessing} />
-            ) : (
-              <form onSubmit={handleTextSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <textarea
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="e.g. Map out a user registration flow..."
-                  rows={5}
-                  disabled={isProcessing}
-                  style={{
-                    width: "100%", padding: "12px", background: "rgba(0,0,0,0.12)",
-                    border: "1px solid var(--border)", borderRadius: "8px",
-                    color: "var(--text)", fontSize: "13px", lineHeight: 1.6,
-                    resize: "none", outline: "none", fontFamily: "inherit",
-                    transition: "border-color 0.2s",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
-                  onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
-                />
-                <button type="submit" disabled={isProcessing || !textInput.trim()} style={{
-                  padding: "11px", width: "100%",
-                  background: isProcessing || !textInput.trim() ? "var(--border)" : "var(--accent)",
-                  color: "#fff", border: "none", borderRadius: "8px",
-                  fontSize: "13px", fontWeight: 600, cursor: "pointer", transition: "opacity 0.2s",
-                }}>
-                  {isProcessing ? "Generating…" : "Generate Map →"}
-                </button>
+            {inputMode === "text" ? (
+              <form onSubmit={(event) => { event.preventDefault(); processText(textInput); }} className="map-composer">
+                <label htmlFor="map-prompt">Describe the topic, outcome, or system you want to understand.</label>
+                <textarea id="map-prompt" value={textInput} onChange={(event) => setTextInput(event.target.value.slice(0, 1200))} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); processText(textInput); } }} placeholder="Example: Map the launch plan for a new digital product…" rows={6} disabled={isProcessing} autoFocus />
+                <div className="composer-meta"><span>{textInput.length}/1200</span><span>Ctrl/⌘ + Enter</span></div>
+                <button type="submit" className="generate-button" disabled={isProcessing || textInput.trim().length < 8}>{isProcessing ? "Building map…" : <>Generate map <span aria-hidden="true">→</span></>}</button>
               </form>
-            )}
+            ) : <div className="voice-panel"><p>Record a thought; Audiomap will transcribe it before building the map.</p><AudioRecorder onTranscript={processText} onError={(message) => { setErrorMsg(message); setStep("error"); }} isProcessing={isProcessing} /></div>}
 
-            {/* Status */}
-            {step !== "idle" && (
-              <div style={{
-                marginTop: "12px", padding: "10px 12px", borderRadius: "8px",
-                background: "var(--bg)", border: "1px solid var(--border)",
-                fontSize: "12px", color: step === "error" ? "var(--error)" : "var(--muted)", lineHeight: 1.5,
-              }}>
-                {step === "generating" && (
-                  <span>
-                    <span className="pulse-ring" style={{ display: "inline-block", width: "7px", height: "7px", background: "var(--accent)", borderRadius: "50%", marginRight: "8px" }} />
-                    Generating mind map…
-                  </span>
-                )}
-                {step === "done" && transcript && (
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ color: "var(--accent)" }}>✓</span>
-                    &quot;{transcript.length > 60 ? transcript.slice(0, 60) + "…" : transcript}&quot;
-                    {savedMsg && (
-                      <span style={{ marginLeft: "auto", color: "var(--accent)", fontWeight: 600, fontSize: "11px" }}>
-                        {savedMsg}
-                      </span>
-                    )}
-                  </span>
-                )}
-                {step === "done" && generationMeta?.notice && (
-                  <span style={{ display: "block", marginTop: "8px", color: "#d4a853" }}>{generationMeta.notice}</span>
-                )}
-                {step === "error" && <span>⚠ {errorMsg}</span>}
+            {!hasMap && step === "idle" ? <div className="quick-start"><p>Try a starting point</p>{EXAMPLES.map((example) => <button key={example.label} onClick={() => { setTextInput(example.text); setInputMode("text"); }}>{example.label}<span aria-hidden="true">↗</span></button>)}</div> : null}
+
+            {step !== "idle" ? (
+              <div className={`generation-status status-${step}`} role="status" aria-live="polite">
+                {isProcessing ? <><span className="status-dot" aria-hidden="true" /><div><strong>{stageLabels[generationStage]}</strong><span>Step {generationStage + 1} of 3</span></div></> : null}
+                {step === "done" ? <><span className="status-check" aria-hidden="true">✓</span><div><strong>Map ready</strong><span>{generationMeta?.mode === "ai" ? `AI · ${generationMeta.model}` : "Local structurer"}{savedMsg ? ` · ${savedMsg}` : ""}</span></div></> : null}
+                {step === "error" ? <><span aria-hidden="true">!</span><div><strong>Could not build the map</strong><span>{errorMsg}</span></div></> : null}
               </div>
-            )}
+            ) : null}
+            {generationMeta?.notice ? <p className="generation-notice" role="status">{generationMeta.notice}</p> : null}
+            {(step === "done" || step === "error") ? <button onClick={reset} className="new-map-button">+ Start a new map</button> : null}
+          </section>
 
-            {(step === "done" || step === "error") && (
-              <button onClick={reset} style={{
-                marginTop: "10px", padding: "8px", width: "100%", background: "transparent",
-                border: "1px dashed var(--border-2)", borderRadius: "8px",
-                color: "var(--muted)", fontSize: "12px", cursor: "pointer", transition: "all 0.2s",
-              }}
-                onMouseEnter={(e) => { (e.currentTarget.style.borderColor = "var(--accent)"); (e.currentTarget.style.color = "var(--accent)"); }}
-                onMouseLeave={(e) => { (e.currentTarget.style.borderColor = "var(--border-2)"); (e.currentTarget.style.color = "var(--muted)"); }}
-              >
-                + New Map
-              </button>
-            )}
-          </div>
-
-          <hr style={{ border: "none", borderTop: "1px solid var(--border)" }} />
-
-          {/* Recent sessions */}
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: "11px", color: "var(--muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>
-              Recent Sessions
-            </p>
-            {history.length === 0 ? (
-              <div style={{ padding: "14px", textAlign: "center", border: "1px dashed var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--muted)" }}>
-                No history yet.
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {history.map((item) => (
-                  <button key={item.id}
-                    onClick={() => { setMermaidCode(item.mermaid); setTranscript(item.transcript); setResources(item.resources); setStep("done"); setResourcesOpen(false); }}
-                    style={{
-                      padding: "9px 12px", background: "transparent", border: "1px solid var(--border)",
-                      borderRadius: "8px", color: "var(--text)", fontSize: "12px", cursor: "pointer",
-                      textAlign: "left", transition: "all 0.15s", display: "flex", gap: "8px", alignItems: "center",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget.style.borderColor = "var(--border-2)"); (e.currentTarget.style.background = "rgba(255,255,255,0.02)"); }}
-                    onMouseLeave={(e) => { (e.currentTarget.style.borderColor = "var(--border)"); (e.currentTarget.style.background = "transparent"); }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{item.transcript.slice(0, 38)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <section className="recent-section" aria-labelledby="recent-title">
+            <div className="section-kicker"><span>02</span><h2 id="recent-title">Recent maps</h2></div>
+            {history.length ? <div className="recent-list">{history.map((item) => <button key={item.id} onClick={() => { setMermaidCode(item.mermaid); setTranscript(item.transcript); setTextInput(item.transcript); setResources(item.resources); setCurrentProjectId(item.id); setStep("done"); setResourcesOpen(false); }}><span className="recent-icon" aria-hidden="true"><ClockIcon /></span><span>{item.transcript}</span></button>)}</div> : <p className="history-empty">Your generated maps will be saved on this device.</p>}
+          </section>
         </div>
       </aside>
 
-      {/* ─── MAIN CANVAS AREA ─── */}
       <main className="app-main">
-
-        {/* Toolbar */}
-        <header className="canvas-toolbar" style={{
-          height: "56px",
-          borderBottom: "1px solid var(--border)",
-          background: "rgba(13, 15, 19, 0.7)",
-          backdropFilter: "blur(12px)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "0 20px",
-          zIndex: 5,
-          flexShrink: 0,
-        }}>
-          <div style={{ fontSize: "13px", color: hasMap ? "var(--text-2)" : "var(--muted)", fontWeight: 500 }}>
-            {hasMap ? (
-              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent)", display: "inline-block", flexShrink: 0 }} />
-                <span style={{ whiteSpace: "nowrap" }}>Interactive Canvas</span>
-                <span style={{ color: "var(--muted)", fontSize: "11px", whiteSpace: "nowrap", display: "inline-block" }}>— drag nodes to rearrange</span>
-              </span>
-            ) : "Workspace is empty. Describe an idea to map it."}
+        <header className="canvas-toolbar">
+          <div className="canvas-context">
+            <span className={hasMap ? "canvas-live" : ""} aria-hidden="true" />
+            <div><strong>{hasMap ? "Interactive map" : "New workspace"}</strong><span>{hasMap ? `${flowNodes.length} nodes · drag to rearrange` : "Choose a prompt or describe your own idea"}</span></div>
           </div>
-
-          {/* Toolbar Actions */}
-          <div className="canvas-toolbar-actions" style={{ display: "flex", gap: "6px", alignItems: "center", opacity: hasMap ? 1 : 0.4, pointerEvents: hasMap ? "auto" : "none" }}>
-
-            {/* Copy Mermaid Code */}
-            <ToolbarBtn onClick={handleCopyCode} active={copied}>
-              {copied ? "✓ Copied" : "{ } Code"}
-            </ToolbarBtn>
-
-            <div style={{ width: "1px", height: "20px", background: "var(--border)" }} />
-
-            {/* Export group */}
-            <ToolbarBtn onClick={handleExportPng}>PNG</ToolbarBtn>
-            <ToolbarBtn onClick={handleExportSvg}>SVG</ToolbarBtn>
-            <ToolbarBtn onClick={handleExportJson}>{'{ }'} JSON</ToolbarBtn>
-            <ToolbarBtn onClick={handleCopyMarkdown}>Markdown</ToolbarBtn>
-
-            {/* Resources toggle */}
-            {resources.length > 0 && (
-              <>
-                <div style={{ width: "1px", height: "20px", background: "var(--border)" }} />
-                <ToolbarBtn onClick={() => setResourcesOpen((o) => !o)} active={resourcesOpen}>
-                  📚 Resources{resourcesOpen ? " ×" : ""}
-                </ToolbarBtn>
-              </>
-            )}
+          <div className={`canvas-toolbar-actions ${hasMap ? "" : "is-disabled"}`}>
+            <button onClick={handleCopyCode} disabled={!hasMap} className="toolbar-button">{copied ? "Copied" : "Copy code"}</button>
+            {resources.length ? <button onClick={() => setResourcesOpen((open) => !open)} disabled={!hasMap} className={`toolbar-button ${resourcesOpen ? "is-active" : ""}`}>Resources <span>{resources.reduce((sum, group) => sum + group.links.length, 0)}</span></button> : null}
+            <div className="export-menu">
+              <button onClick={() => setExportOpen((open) => !open)} disabled={!hasMap} className="toolbar-button primary" aria-expanded={exportOpen}>Export <span aria-hidden="true">⌄</span></button>
+              {exportOpen ? <div className="export-popover"><button onClick={handleExportPng}><strong>PNG image</strong><span>Best for sharing</span></button><button onClick={handleExportSvg}><strong>SVG vector</strong><span>Best for editing</span></button><button onClick={handleExportJson}><strong>JSON data</strong><span>Nodes and links</span></button><button onClick={handleCopyMarkdown}><strong>Copy Markdown</strong><span>Text outline</span></button></div> : null}
+            </div>
           </div>
         </header>
 
-        {/* Canvas */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {!hasMap ? (
-            <EmptyState />
-          ) : (
-            <FlowCanvas
-              code={mermaidCode}
-              onStateChange={handleFlowStateChange}
-              canvasDivRef={canvasDivRef}
-            />
-          )}
-
-          {/* Resources Overlay */}
-          {resourcesOpen && resources.length > 0 && (
-            <div style={{
-              position: "absolute", bottom: "16px", left: "16px", right: "16px",
-              background: "rgba(19, 22, 28, 0.92)", backdropFilter: "blur(24px)",
-              border: "1px solid var(--border)", borderRadius: "16px", padding: "20px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5)", maxHeight: "260px", overflowY: "auto", zIndex: 20,
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>Curated Resources</span>
-                </div>
-                <button onClick={() => setResourcesOpen(false)} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "16px", lineHeight: 1 }}>×</button>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
-                {resources.map((group) => (
-                  <div key={group.topic}>
-                    <p style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: "7px", fontWeight: 700 }}>
-                      {group.topic}
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                      {group.links.map((link, i) => (
-                        <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{
-                          display: "flex", alignItems: "center", gap: "8px", padding: "7px 9px",
-                          background: "rgba(255,255,255,0.03)", border: "1px solid transparent",
-                          borderRadius: "7px", textDecoration: "none", transition: "all 0.15s",
-                        }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "var(--border-2)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "transparent"; }}
-                        >
-                          <span style={{ fontSize: "11px" }}>{TYPE_ICONS[link.type] ?? "🔗"}</span>
-                          <span style={{ fontSize: "11px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link.title}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="canvas-stage">
+          {!hasMap ? <EmptyState onExample={(text) => { setTextInput(text); setInputMode("text"); }} /> : <FlowCanvas code={mermaidCode} onStateChange={handleFlowStateChange} canvasDivRef={canvasDivRef} />}
+          {resourcesOpen && resources.length ? <ResourcesPanel groups={resources} onClose={() => setResourcesOpen(false)} /> : null}
+          {isProcessing && hasMap ? <div className="canvas-progress" role="status"><span className="status-dot" />Updating map · {stageLabels[generationStage]}</div> : null}
         </div>
       </main>
     </div>
   );
 }
 
-// ─── Sub-components ────────────────────────────────────────────────────────
-function ToolbarBtn({ children, onClick, active }: { children: React.ReactNode; onClick: () => void; active?: boolean }) {
-  return (
-    <button onClick={onClick} style={{
-      padding: "0 12px", height: "30px", background: active ? "var(--accent-dim)" : "var(--surface)",
-      border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
-      borderRadius: "6px", color: active ? "var(--accent)" : "var(--text-2)",
-      fontSize: "11px", fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
-      display: "flex", alignItems: "center", gap: "5px", whiteSpace: "nowrap",
-    }}
-      onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text)"; } }}
-      onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.color = "var(--text-2)"; } }}
-    >
-      {children}
-    </button>
-  );
+function EmptyState({ onExample }: { onExample: (text: string) => void }) {
+  return <section className="canvas-empty" aria-labelledby="empty-map-title"><div className="empty-symbol" aria-hidden="true"><MapIcon /></div><p className="empty-kicker">From thought to structure</p><h2 id="empty-map-title">What do you want to make sense of?</h2><p>Start with a clear outcome. Audiomap will organize it into branches you can move, inspect, and export.</p><div className="empty-examples">{EXAMPLES.map((example) => <button key={example.label} onClick={() => onExample(example.text)}><span>{example.label}</span><small>{example.text}</small></button>)}</div></section>;
 }
 
-function EmptyState() {
-  return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", userSelect: "none" }}>
-      <div style={{ width: "64px", height: "64px", borderRadius: "16px", border: "1px dashed var(--border-2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--border-2)" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-          <path d="M2 12h20"/>
-        </svg>
-      </div>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-2)", marginBottom: "4px" }}>Empty Canvas</p>
-        <p style={{ fontSize: "12px", color: "var(--muted)" }}>Speak or type an idea to generate an interactive mind map</p>
-      </div>
-    </div>
-  );
+function ResourcesPanel({ groups, onClose }: { groups: ResourceGroup[]; onClose: () => void }) {
+  return <aside className="resources-panel" aria-label="Curated resources"><header><div><span>Research layer</span><h2>Curated resources</h2></div><button onClick={onClose} aria-label="Close resources">×</button></header><div className="resources-grid">{groups.map((group) => <section key={group.topic}><h3>{group.topic}</h3>{group.links.map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer"><span>{link.type}</span><strong>{link.title}</strong><b aria-hidden="true">↗</b></a>)}</section>)}</div></aside>;
 }
 
-// ─── Suspense wrapper (required for useSearchParams in Next.js) ──────────────
+function GridIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>; }
+function ClockIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>; }
+function MapIcon() { return <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 12h4c3 0 3-6 6-6M7 12h4c3 0 3 6 6 6"/></svg>; }
+
 export default function AppWorkspace() {
-  return (
-    <Suspense fallback={
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)", color: "var(--muted)", fontSize: "14px" }}>
-        Loading…
-      </div>
-    }>
-      <AppWorkspaceInner />
-    </Suspense>
-  );
+  return <Suspense fallback={<div className="workspace-fallback" role="status">Opening your workspace…</div>}><AppWorkspaceInner /></Suspense>;
 }

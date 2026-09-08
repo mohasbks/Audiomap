@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "Audiomap — Voice to Mind Map",
-  description: "Speak your thoughts. Watch them become a structured mind map instantly using AI.",
+  title: "Audiomap — Turn Voice and Text into Mind Maps",
+  description: "Transform thoughts into editable, structured mind maps using voice, text, and AI-assisted organization.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
